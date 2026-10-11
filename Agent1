@@ -1,1 +1,16 @@
 from agnetSatate import State 
+from  AgnetMessages import  
+from. ALLLLM  import LLM 
+
+
+
+def agent1(state:State):
+     
+    DATA = [SystemMessage, HumanMessage(content=state ["Messages"])]
+    TOOL_LLM = LLM_bind_Tool()
+    output = TOOL_LLM.invoke(DATA)
+    return {"messages": output}
+    
+    
+     
+     
