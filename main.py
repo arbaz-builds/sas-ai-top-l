@@ -1,12 +1,8 @@
-"""
-custom-llm-finetuning
-Starter entry point for a custom LLM fine-tuning pipeline.
-"""
+from fastapi import FastAPI
 
 
-def main():
-    pass
+
+app = FastAPI()
 
 
-if __name__ == "__main__":
-    main()
+
