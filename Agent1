@@ -7,7 +7,7 @@ from. ALLLLM  import LLM
 
 def agent1(state:State):
      
-    DATA = [SystemMessage(content=Agnet1_Prompt), HumanMessage(content=state ["Messages"])]
+    DATA = [SystemMessage(content=Agnet1_Prompt), HumanMessage(content=state["messages"])]
     TOOL_LLM = LLM_bind_Tool()
     output = TOOL_LLM.invoke(DATA)
     return {"messages": output}
