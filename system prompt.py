@@ -1,4 +1,4 @@
-from langchain.core_messages import SystemMessage, HumanMessage 
+from langchain_core.messages import SystemMessage, HumanMessage 
 
 
 Agent1_Prompt = """     """
