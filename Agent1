@@ -1,4 +1,5 @@
 from agnetSatate import State 
+from langchain_core.messages import SystemMessage, HumanMessage 
 from  System_prompt import Agnet1_Prompt
 from. ALLLLM  import LLM 
 
@@ -6,7 +7,7 @@ from. ALLLLM  import LLM
 
 def agent1(state:State):
      
-    DATA = [SystemMessage, HumanMessage(content=state ["Messages"])]
+    DATA = [SystemMessage(content=Agnet1_Prompt), HumanMessage(content=state ["Messages"])]
     TOOL_LLM = LLM_bind_Tool()
     output = TOOL_LLM.invoke(DATA)
     return {"messages": output}
