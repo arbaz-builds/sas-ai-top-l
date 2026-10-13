@@ -29,3 +29,11 @@ def LLM_Plain():
         model=os.getenv("CHAT_MODEL", "meta/llama-3.3-70b-instruct"),
         api_key=os.getenv("NVIDIA_API_KEY"),
     )
+
+
+def LLM_Vision():
+    # vision-language model for the Image Analyzer (Llama-3.2-vision NIMs take ONE image per request)
+    return ChatNVIDIA(
+        model=os.getenv("VLM_MODEL", "meta/llama-3.2-11b-vision-instruct"),
+        api_key=os.getenv("NVIDIA_API_KEY"),
+    )
