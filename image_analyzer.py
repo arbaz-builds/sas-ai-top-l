@@ -1,7 +1,7 @@
 import base64
 import io
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage 
 from PIL import Image
 
 from agent_state import State
