@@ -20,7 +20,12 @@ def RAG(data):
     )
 
     chunks = splitter.split_documents(documents)
+    docs = PineconeVectorStore(
+            index_name=config.PINECONE_INDEX,
+            embedding=embeddings,
+            pinecone_api_key=config.PINECONE_API_KEY
+        )
 
-    return chunks
+    return docs
 
 
