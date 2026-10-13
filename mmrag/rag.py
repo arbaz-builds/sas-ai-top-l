@@ -2,8 +2,12 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2t
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def RAG(data):
- 
-  text =  PyPDFLoader():
+  if data  == pdf:
+     text =  PyPDFLoader(data):
+  else data  == doc:
+     text = Docx2txtLoader(data)
+     
+  
 
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=100,
