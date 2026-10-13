@@ -1,18 +1,26 @@
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def RAG(data):
-  if data  == pdf:
-     text =  PyPDFLoader(data):
-  else data  == doc:
-     text = Docx2txtLoader(data)
-     
-  
+    if data.endswith(".pdf"):
+        loader = PyPDFLoader(data)
 
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=100,
-    chunk_overlap=20
-)
+    elif data.endswith(".docx"):
+        loader = Docx2txtLoader(data)
 
-chunks = splitter.split_text(text)
+    else:
+        print("Unsupported file type")
+        return
+
+    documents = loader.load()
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=150
+    )
+
+    chunks = splitter.split_documents(documents)
+
+    return chunks
+
 
