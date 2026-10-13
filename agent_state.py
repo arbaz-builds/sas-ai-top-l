@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class State(TypedDict):
-      messages:List[BaseMessage]
+      messages: Annotated[List[BaseMessage], add_messages]
       TextDATA: str
       ImageDATA: str
       Dataprocess: str
