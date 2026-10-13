@@ -21,3 +21,11 @@ def LLM_bind_Tool():
         api_key=os.getenv("NVIDIA_API_KEY"),
     )
     return llm.bind_tools(tools)
+
+
+def LLM_Plain():
+    # plain chat model (no tools) for the analyzer nodes
+    return ChatNVIDIA(
+        model=os.getenv("CHAT_MODEL", "meta/llama-3.3-70b-instruct"),
+        api_key=os.getenv("NVIDIA_API_KEY"),
+    )
