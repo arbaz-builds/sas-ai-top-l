@@ -5,18 +5,11 @@ from langchain_core.messages import HumanMessage
 from PIL import Image
 
 from agent_state import State
+from system_prompt import ImageAnalyzer_Prompt
 from LLM import LLM_Vision
 
-ImageAnalyzer_Prompt = """You are the Image Analyzer of an insurance claim review system. You look at ONE image that belongs to a claim (bill, discharge summary, ID, policy paper, photo of damage, etc.).
 
-Answer in this structure:
-1. TYPE: what kind of image or document this is.
-2. TEXT: all readable text exactly as written (names, policy number, dates, amounts, hospital or vendor, stamps, signatures). Write "unreadable" for parts you cannot read. Never guess numbers.
-3. CONTENT: for photos, describe what is visible (what is damaged, where, how severe).
-4. ANOMALIES: anything that looks edited or inconsistent (mixed fonts or sizes, misaligned text, blurred or pasted-looking areas around numbers, totals that do not add up, unrealistic lighting or textures). These are possible signs only, not proof, so say how sure you are (low / medium / high).
-5. If nothing looks wrong, write "none seen".
-
-Do not invent anything that is not visible."""
+  
 
 MAX_IMAGES = 6
 MAX_BYTES = 120000  # hosted NVIDIA endpoints limit inline base64 images (~180 KB)
