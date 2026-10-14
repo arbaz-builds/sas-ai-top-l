@@ -12,7 +12,7 @@ client_Embedding = NVIDIAEmbeddings(
 )
 
 resision_LLM = ChatNVIDIA(
-    model="",
+    model="z-ai/glm-5.3",
     api_key=os.getenv("NVIDIA_API_KEY"),
 )
 
