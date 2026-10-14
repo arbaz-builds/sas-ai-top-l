@@ -1,0 +1,5 @@
+def text_analyzer(state: State):
+def image_analyzer(state: State):
+def final_score(state: State):
+def combine_agent(state: State):
+def agent1(state: State):
