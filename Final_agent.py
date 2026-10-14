@@ -5,8 +5,8 @@ from LLM import resision_LLM
 from system_prompt import  Final_prompt
 
 
-def combine_agent(state: State):
-    DATA = state.get("") or "No text data."
+def final_score(state: State):
+    DATA = state.get("Dataprocess") or "No text data."
 
     Final_DATA = [
         SystemMessage(content=Final_prompt),
