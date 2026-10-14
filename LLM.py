@@ -11,7 +11,7 @@ client_Embedding = NVIDIAEmbeddings(
     truncate="END",
 )
 
-resision_LLM = NVIDIAEmbeddings(
+resision_LLM = ChatNVIDIA(
     model="",
     api_key=os.getenv("NVIDIA_API_KEY"),
 )
