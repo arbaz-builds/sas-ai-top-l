@@ -2,17 +2,16 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agent_state import State
 from LLM import resision_LLM
-from system_prompt import Combine_Prompt
+from system_prompt import  Final_prompt
 
 
 def combine_agent(state: State):
-    text_data = state.get("TextDATA") or "No text data."
-    image_data = state.get("ImageDATA") or "No image data."
+    DATA = state.get("") or "No text data."
 
-    DATA = [
-        SystemMessage(content=Combine_Prompt),
-        HumanMessage(content=f"This is the Text data:\n{text_data}\n\nThis is the Image data (may be empty):\n{image_data}"),
+    Final_DATA = [
+        SystemMessage(content=Final_prompt),
+        HumanMessage(content=f"This is the Text data:\n{DATA}),
     ]
 
-    output = resision_LLM.invoke(DATA)
-    return {"Dataprocess": output.content}
+    output = resision_LLM.invoke(Final_DATA)
+    return {"Finaloutput": output.content}
