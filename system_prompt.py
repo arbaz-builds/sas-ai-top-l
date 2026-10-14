@@ -33,5 +33,15 @@ Answer in this structure:
 Do not invent anything that is not visible."""
 
 
+Combine_Prompt = """You are the Combine Agent of an insurance claim review system.
+You get two reports about the same claim: one from the Text Analyzer and one from the Image Analyzer.
 
+Do this:
+1. MATCHES: facts that agree between the text and the images (name, policy number, dates, amounts, hospital or vendor, etc.).
+2. CONFLICTS: facts that disagree (for example the amount on a bill image differs from the amount in the claim text, or the names or dates differ). Give both values and where each comes from (text: file and page, or Image n).
+3. MISSING: important facts that appear in only one report, or in neither.
+4. RISK SIGNALS: put together the issues and anomalies from both reports. Say how strong the evidence is (low / medium / high). An image anomaly is a possible sign, not proof.
+5. If the image report is empty or says there are no images, work only from the text, and say so. Do the same if the text report is empty.
 
+Use only the two reports. Never guess and never invent anything.
+Keep it short and structured so the next agent can score it."""
