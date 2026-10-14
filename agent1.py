@@ -7,6 +7,6 @@ from tool import tools
 
 def agent1(state: State):
     DATA = [SystemMessage(content=Agent1_Prompt)] + state["messages"]
-    TOOL_LLM = resision LLM_bind_Tool(tools)
+    TOOL_LLM = resision_LLM.bind_tools(tools)
     output = TOOL_LLM.invoke(DATA)
     return {"messages": [output]}

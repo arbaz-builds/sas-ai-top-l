@@ -1,7 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage,ToolMessage
 
 from agent_state import State
-from LLM import LLM_Plain
+from LLM import resision_LLM
 from system_prompt import TextAnalyzer_Prompt
 
 
@@ -32,5 +32,5 @@ def text_analyzer(state: State):
     if not data.strip():
         return {"TextDATA": "No text data to analyze."}
 
-    output = LLM_Plain().invoke([SystemMessage(content=TextAnalyzer_Prompt), HumanMessage(content=data)])
+    output = resision_LLM.invoke([SystemMessage(content=TextAnalyzer_Prompt), HumanMessage(content=data)])
     return {"TextDATA": output.content}

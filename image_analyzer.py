@@ -6,7 +6,7 @@ from PIL import Image
 
 from agent_state import State
 from system_prompt import ImageAnalyzer_Prompt
-from LLM import LLM_Vision
+from LLM import vision_LLM
 
 
   
@@ -53,7 +53,7 @@ def image_analyzer(state: State):
     if not urls:
         return {"ImageDATA": "No images to analyze."}
 
-    llm = LLM_Vision()
+    llm = vision_LLM
     results = []
     for n, url in enumerate(urls[:MAX_IMAGES], start=1):
         # instructions go in the same message as the image (Llama-3.2-vision does not like a system prompt with images)
