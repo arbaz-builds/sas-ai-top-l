@@ -1,5 +1,5 @@
 from Agent_State import state 
-from langgraph.graph import START,END 
+from langgraph.graph import Stategraph START,END 
 
 
 
@@ -8,10 +8,27 @@ from langgraph.graph import START,END
 
 
 
+g = Stategraph(State)
 
 
-def text_analyzer(state: State):
-def image_analyzer(state: State):
-def final_score(state: State):
-def combine_agent(state: State):
-def agent1(state: State):
+def function ():
+
+   g._node(agent1,"")
+   g.add_node(text_analyzer,"")
+   g.add_node(image_analyzer,")
+   g.add_node(combine_agent,"")
+   g.add_node(final_score,"")
+   
+
+
+
+
+
+
+
+    return g
+
+   g.add_adges (START,Agent1)
+   
+   
+   
