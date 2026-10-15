@@ -6,7 +6,7 @@ from tool import tools
 
 
 def IntroDecision_LLM(state: State):
-    DATA = [SystemMessage(content=Agent1_Prompt)] + state["messages"]
+    DATA = [SystemMessage(content=IntroDecision_prompt)] + state["messages"]
     Structure_LLM = resision_LLM.Structure_output(IntroDecision)
     output = Structure_LLM.invoke(DATA)
     return {"messages": [output]}
