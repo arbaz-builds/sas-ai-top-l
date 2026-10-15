@@ -5,7 +5,7 @@ from LLM import resision_LLM
 from tool import tools 
 
 
-def Tool_node(state: State):
+def Tool_node_LLM(state: State):
     DATA = [SystemMessage(content=Agent1_Prompt)] + state["messages"]
     TOOL_LLM = resision_LLM.bind_tools(tools)
     output = TOOL_LLM.invoke(DATA)
