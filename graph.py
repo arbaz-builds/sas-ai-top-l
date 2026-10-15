@@ -2,7 +2,8 @@ from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from agent1 import agent1
+from agent1 import IntroDecision_LLM
+from Tool_LLM import agent1
 from agent_state import State
 from combion_agentm import combine_agent
 from Final_agent import final_score
@@ -11,36 +12,7 @@ from text_analyzer import text_analyzer
 from tool import tools
 
 
-def _has_image(msg):
-    return isinstance(msg.content, list) and any(
-        isinstance(p, dict) and p.get("type") == "image_url" for p in msg.content
-    )
 
-
-def _this_turn(messages):
-    # everything from the client's latest message onwards = the current turn
-    for i in range(len(messages) - 1, -1, -1):
-        if isinstance(messages[i], HumanMessage):
-            return messages[i:]
-    return []
-
-
-def route_after_agent1(state: State):
-    messages = state["messages"]
-
-    # 1) agent1 wants a tool -> run it (the result comes back to agent1)
-    if getattr(messages[-1], "tool_calls", None):
-        return "tools"
-
-    # 2) agent1 is done. If this turn brought claim data (a tool result or an image) -> analyze it
-    turn = _this_turn(messages)
-    has_tool_result = any(isinstance(m, ToolMessage) for m in turn)
-    has_image = any(isinstance(m, HumanMessage) and _has_image(m) for m in turn)
-    if has_tool_result or has_image:
-        return ["text_analyzer", "image_analyzer"]
-
-    # 3) normal chat -> reply and stop
-    return END
 
 
 def build_graph():
