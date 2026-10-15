@@ -1,6 +1,6 @@
 from langchain_core.tools import tool
 
-from mmrag.rag import get_store
+from rag.ingestion import get_store
 
 
 @tool

@@ -2,7 +2,7 @@
 
 AI-assisted insurance claim analysis. Verriffy reads the documents and images of a claim, cross-checks them, and hands a human reviewer a **score, the reasons behind it, and the evidence for each reason**.
 
-> **Status: early prototype.** All agent nodes are written and the graph is wired and tested offline with stubbed models. It has **not** been run against real models or real claim data yet. See [Status](#status).
+> **Status: early prototype.** All nodes and prompts are written and the graph is wired. It has **not** been run against real models or real claim data yet, and the intro node is not finished. See [Status](#status).
 
 ## What it is (and is not)
 
@@ -13,23 +13,28 @@ AI-assisted insurance claim analysis. Verriffy reads the documents and images of
 ## Architecture
 
 ```
-START -> agent1 --(needs a tool)--> tools --+--> text_analyzer  --+
-           |                                |                     +--> combine_agent --> final_score --> END
-           +--(no tool needed)--> END       +--> image_analyzer --+
+START -> IntroDecision --(unclear)--> END          (its reply is the chat answer)
+              |
+              +--(analyze_claim)--> LLM_ToolNode <--> tools      (collect data with tools)
+                                        |
+                                        +--(no more tools)--> text_analyzer  --+
+                                        |                                       +--> combine_agent --> final_score --> END
+                                        +--------------------> image_analyzer --+
 ```
 
-Built with LangGraph. `text_analyzer` and `image_analyzer` run **in parallel**; `combine_agent` waits for both.
+Built with LangGraph. The analysis only starts when the client has clearly asked for it and given enough detail; normal chat never triggers it. `text_analyzer` and `image_analyzer` run **in parallel**; `combine_agent` waits for both.
 
-| Node | File / function | Reads from state | Writes to state | What it does |
-|---|---|---|---|---|
-| Chat agent | `agent1.py` / `agent1` | `messages` | `messages` | Talks to the client, decides when to call a tool |
-| Tools | `tool.py` / `tools` | tool calls | `messages` | `rag_tool` searches the indexed claim documents (Pinecone) |
-| Text Analyzer | `text_analyzer.py` / `text_analyzer` | user text + tool results in `messages` | `TextDATA` | Extracts facts, finds issues, cites the source of each |
-| Image Analyzer | `image_analyzer.py` / `image_analyzer` | images in `messages` | `ImageDATA` | Per image: type, readable text (OCR), content, possible anomalies |
-| Combine Agent | `combion_agentm.py` / `combine_agent` | `TextDATA`, `ImageDATA` | `Dataprocess` | Matches, conflicts, missing facts, combined risk signals |
-| Final Agent | `Final_agent.py` / `final_score` | `Dataprocess` | `Finaloutput` | Score, level, reasons with evidence, what to check next, confidence |
+| Graph node | File / function | Prompt (`prompts.py`) | Reads | Writes | What it does |
+|---|---|---|---|---|---|
+| `IntroDecision` | `intro_decision_node.py` / `IntroDecision_LLM` | `IntroDecision_Prompt` | `messages` | `messages`, `decision` | Chats with the client; decides "unclear" (reply and stop) or "analyze_claim" (start) |
+| `LLM_ToolNode` | `tool_calling_node.py` / `Tool_node_LLM` | `ToolCalling_Prompt` | `messages` | `messages` | Decides which tools to call to collect the claim data |
+| `tools` | `tools.py` / `tools` | - | tool calls | `messages` | `rag_tool` searches the indexed claim documents (Pinecone) |
+| `text_analyzer` | `text_analyzer_node.py` / `text_analyzer` | `TextAnalyzer_Prompt` | user text + tool results | `TextDATA` | Facts, issues, and the source of each |
+| `image_analyzer` | `image_analyzer_node.py` / `image_analyzer` | `ImageAnalyzer_Prompt` | images in `messages` | `ImageDATA` | Per image: type, readable text (OCR), content, possible anomalies |
+| `combine_agent` | `combine_node.py` / `combine_agent` | `Combine_Prompt` | `TextDATA`, `ImageDATA` | `Dataprocess` | Matches, conflicts, missing facts, combined risk signals |
+| `final_score` | `final_score_node.py` / `final_score` | `Final_Prompt` | `Dataprocess` | `Finaloutput` | Score, level, reasons with evidence, what to check next, confidence |
 
-Prompts live in `system_prompt.py`. Shared state is defined in `agent_state.py`:
+Shared state is in `state.py` (`State`, plus the `IntroDecision` structured-output schema):
 
 ```python
 class State(TypedDict):
@@ -39,18 +44,19 @@ class State(TypedDict):
     Dataprocess: str
     Finaloutput: str
 ```
+`graph.py` reads `state["decision"]` to route after `IntroDecision` (see Status: this field still has to be added to `State`).
 
 ### Document ingestion (RAG)
 
-`mmrag/rag.py` -> `RAG(path)`: PDF / DOCX -> LangChain loaders -> `RecursiveCharacterTextSplitter` (1000 chars, 150 overlap) -> embeddings -> Pinecone. `get_store()` returns the store used by `rag_tool`.
+`rag/ingestion.py` -> `RAG(path)`: PDF / DOCX -> LangChain loaders -> `RecursiveCharacterTextSplitter` (1000 chars, 150 overlap) -> embeddings -> Pinecone. `get_store()` returns the store used by `rag_tool`.
 
-`mmrag/ingest.py` -> `image_data(path)`: image -> JPEG -> base64 data URL. Images reach the graph as `image_url` parts of a `HumanMessage`.
+`rag/image_utils.py` -> `image_data(path)`: image -> JPEG -> base64 data URL. Images reach the graph as `image_url` parts of a `HumanMessage`.
 
 **Why images go to the vision model directly:** an embedding only helps to *find* an image, it cannot answer "what is the amount on this bill". The Image Analyzer therefore sends the original image to a vision model (one image per call, at most 6 per run, each shrunk to ~120 KB for the API limit).
 
 ### Stack
 
-Python, LangGraph, LangChain, NVIDIA NIM (`ChatNVIDIA`, `NVIDIAEmbeddings`), Pinecone. Embedding model: `nvidia/llama-nemotron-embed-vl-1b-v2`.
+Python, LangGraph, LangChain, NVIDIA NIM (`ChatNVIDIA`, `NVIDIAEmbeddings`), Pinecone. Embedding model: `nvidia/llama-nemotron-embed-vl-1b-v2`. Model clients live in `models.py`.
 
 ## Setup
 
@@ -59,23 +65,24 @@ pip install -r requirements.txt
 cp .env.example .env        # then fill in the keys
 ```
 
-Required in `.env`: `NVIDIA_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX` (the index dimension must match the embedding model).
-Model names for the chat/reasoning model and the vision model are set in `LLM.py` (`resision_LLM`, `vision_LLM`).
+Required in `.env`: `NVIDIA_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX` (the index dimension must match the embedding model). Model names are set in `models.py`.
 
 Never commit `.env`. Do not put real claim data in this repo.
 
 ## Usage (example)
 
+Works once the intro node is finished (see Status).
+
 ```python
 from langchain_core.messages import HumanMessage
 from graph import graph
-from mmrag.ingest import image_data
-from mmrag.rag import RAG
+from rag.image_utils import image_data
+from rag.ingestion import RAG
 
 RAG("claims/discharge_summary.pdf")                      # index a document once
 
 msg = HumanMessage(content=[
-    {"type": "text", "text": "Please check my claim, the hospital bill is attached."},
+    {"type": "text", "text": "Please analyze claim C-1042. The hospital bill is attached."},
     {"type": "image_url", "image_url": {"url": image_data("claims/bill.jpg")}},
 ])
 result = graph.invoke({"messages": [msg]})
@@ -99,19 +106,20 @@ CONFIDENCE: medium - one image partly unreadable
 
 | Area | State |
 |---|---|
-| Node code (chat, text, image, combine, final) + prompts | Done |
-| Graph wiring, parallel analyzers, fan-in | Done, tested offline with stub models |
-| RAG ingestion function (PDF/DOCX -> Pinecone) | Written, not run against real Pinecone |
-| Model names in `LLM.py` (`resision_LLM`, `vision_LLM`) | **To do**: empty; `vision_LLM` must be a `ChatNVIDIA` vision model |
-| `Agent1_Prompt` (chat agent system prompt) | **To do**: empty |
-| Insurance company data API tool | **To do** (`tool.py` TODO) |
+| All six system prompts (`prompts.py`) | Done |
+| Graph wiring (`graph.py`): intro decision, tool loop, parallel analyzers, fan-in | Done; every import resolves; routing tested offline with stub models |
+| Analyzer, combine and final nodes | Done, tested offline with stub models |
+| RAG ingestion (PDF/DOCX -> Pinecone) | Written, not run against real Pinecone |
+| `IntroDecision` node (`intro_decision_node.py`) | **To do**: use `with_structured_output`; return the reply as an `AIMessage` and store `decision` in state |
+| `decision` field in `State` | **To do** (graph routing reads it) |
+| `vision_LLM` in `models.py` | **To do**: must be a vision chat model (`ChatNVIDIA`), currently empty |
+| Insurance company data API tool | **To do** (`tools.py` TODO) |
 | Upload / ingestion entry point | **To do**: nothing calls `RAG()` yet |
 | End-to-end run with real models and sample claims | **To do** |
 
 ## Known limitations
 
 - **No claim isolation yet.** Documents are not tagged with a `claim_id`, so different claims can mix in retrieval. Must be fixed before any real use.
-- One tool round only: after the tool runs, analysis starts and `agent1` does not read the tool result. If `agent1` calls no tool, no analysis runs.
 - Vision models can misread numbers. Original images must stay available to the reviewer; output is for human review.
 - Llama-3.2-vision style models accept one image per request.
 - No audit log, no structured (schema-validated) score output, no evaluation set yet.
@@ -119,7 +127,7 @@ CONFIDENCE: medium - one image partly unreadable
 
 ## Roadmap
 
-1. Fill in `LLM.py` models and `Agent1_Prompt`; run end-to-end on a few synthetic claims.
+1. Finish `IntroDecision`, add `decision` to `State`, set `vision_LLM`; run end-to-end on a few synthetic claims.
 2. Add `claim_id` metadata / Pinecone namespaces for claim isolation.
 3. Upload + ingestion entry point.
 4. Insurance data API tool.
@@ -130,18 +138,19 @@ CONFIDENCE: medium - one image partly unreadable
 ## Repository layout
 
 ```
-graph.py             LangGraph wiring
-agent1.py            chat agent (tool calling)
-text_analyzer.py     text analysis node
-image_analyzer.py    image analysis node
-combion_agentm.py    combine node (cross-check text vs images)
-Final_agent.py       score + reasons node
-agent_state.py       shared State
-system_prompt.py     all prompts
-LLM.py               model clients (embeddings, chat, vision)
-tool.py              tools (rag_tool; insurance API tool TODO)
-mmrag/rag.py         document ingestion + vector store access
-mmrag/ingest.py      image -> data URL
+graph.py                 LangGraph wiring
+state.py                 shared State + IntroDecision schema
+prompts.py               all system prompts
+models.py                model clients (embeddings, chat, vision)
+tools.py                 tools (rag_tool; insurance API tool TODO)
+intro_decision_node.py   decides: chat reply or start analysis
+tool_calling_node.py     collects data with tools
+text_analyzer_node.py    text analysis node
+image_analyzer_node.py   image analysis node
+combine_node.py          cross-checks text vs images
+final_score_node.py      score + reasons
+rag/ingestion.py         document ingestion + vector store access
+rag/image_utils.py       image -> data URL
 ```
 
-Leftovers from an earlier design, unused and pending removal: `main.py`, `mmrag/api.py`, `mmrag/clients.py`, `mmrag/config.py`, `mmrag/store.py`, `tests/`.
+Leftovers from an earlier design, unused and pending removal: `main.py`, `mmrag/` (whole folder), `tests/`.

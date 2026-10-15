@@ -5,7 +5,7 @@ from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from LLM import client_Embedding
+from models import client_Embedding
 
 load_dotenv()
 PINECONE_INDEX = os.getenv("PINECONE_INDEX")  # PINECONE_API_KEY is read from .env automatically
