@@ -1,4 +1,4 @@
-from agent_state import State
+from agent_state import State, IntroDecision
 from langchain_core.messages import SystemMessage
 from system_prompt import Agent1_Prompt
 from LLM import resision_LLM 
@@ -7,6 +7,6 @@ from tool import tools
 
 def agent1(state: State):
     DATA = [SystemMessage(content=Agent1_Prompt)] + state["messages"]
-    TOOL_LLM = resision_LLM.bind_tools(tools)
+    Structure_LLM = resision_LLM.Structure_output(IntroDecision)
     output = TOOL_LLM.invoke(DATA)
     return {"messages": [output]}
