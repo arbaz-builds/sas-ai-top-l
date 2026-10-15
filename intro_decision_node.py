@@ -7,6 +7,6 @@ from tools import tools
 
 def IntroDecision_LLM(state: State):
     DATA = [SystemMessage(content=IntroDecision_Prompt)] + state["messages"]
-    Structure_LLM = resision_LLM.Structure_output(IntroDecision)
+    Structure_LLM = resision_LLM.with_structured_output(IntroDecision)
     output = Structure_LLM.invoke(DATA)
     return {"messages": [output]}
