@@ -5,7 +5,7 @@ from LLM import resision_LLM
 from tool import tools 
 
 
-def agent1(state: State):
+def IntroDecision_LLM(state: State):
     DATA = [SystemMessage(content=Agent1_Prompt)] + state["messages"]
     Structure_LLM = resision_LLM.Structure_output(IntroDecision)
     output = Structure_LLM.invoke(DATA)
