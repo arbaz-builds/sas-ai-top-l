@@ -18,21 +18,21 @@ from tool import tools
 def build_graph():
     g = StateGraph(State)
 
-    g.add_node("agent1", agent1)
-    g.add_node("Tool_Node_LLM", Tool_Node_LLM)
+    g.add_node("IntroDecision", IntroDecision_LLM)
+    g.add_node("LLM_ToolNode", Tool_Node_LLM)
     g.add_node("tools", ToolNode(tools))
     g.add_node("text_analyzer", text_analyzer)
     g.add_node("image_analyzer", image_analyzer)
     g.add_node("combine_agent", combine_agent)
     g.add_node("final_score", final_score)
 
-    g.add_edge(START, "agent1")
+    g.add_edge(START, "IntroDecision")
 
-    # agent1 -> tools, or analysis, or END
-    g.add_conditional_edges("agent1", route_after_agent1, ["tools", "text_analyzer", "image_analyzer", END])
+    
+    g.add_conditional_edges("IntroDecision", intro_route, ["Tool_LLM": "LLM_ToolNode","END":END])
 
-    # the tool result goes back to agent1 (it can call another tool or answer)
-    g.add_edge("tools", "agent1")
+    
+    g.add_edge("LLM_ToolNode",Tool_condition[" )
 
     # combine waits for BOTH analyzers, then the final agent gives score + reasons
     g.add_edge(["text_analyzer", "image_analyzer"], "combine_agent")
