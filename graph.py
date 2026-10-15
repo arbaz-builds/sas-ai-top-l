@@ -3,7 +3,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from agent1 import IntroDecision_LLM
-from Tool_LLM import agent1
+from Tool_LLM import Tool_Node_LLM
 from agent_state import State
 from combion_agentm import combine_agent
 from Final_agent import final_score
@@ -19,6 +19,7 @@ def build_graph():
     g = StateGraph(State)
 
     g.add_node("agent1", agent1)
+    g.add_node("Tool_Node_LLM", Tool_Node_LLM)
     g.add_node("tools", ToolNode(tools))
     g.add_node("text_analyzer", text_analyzer)
     g.add_node("image_analyzer", image_analyzer)
