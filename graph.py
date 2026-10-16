@@ -55,12 +55,9 @@ def build_graph():
     g.add_edge("combine_agent", "final_score")
     g.add_edge("final_score", END)
 
-    return g.compile()
+    return g
+
+build  = build_graph()
 
 
-graph = build_graph()
 
-
-if __name__ == "__main__":
-    result = graph.invoke({"messages": [HumanMessage(content=input("You: "))]})
-    print(result.get("Finaloutput") or result["messages"][-1].content)
