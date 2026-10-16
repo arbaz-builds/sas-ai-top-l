@@ -7,40 +7,18 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from state import Plan, EvidencePack, RouterStructured
 from graph import blog_graph
 import config
 
 config.validate()
 
 fastapi_app = FastAPI(
-    title="Blog Writer Agent API",
-    description="Multi-agent LangGraph pipeline: Router → Research → Planning → Parallel Writers",
+    title="",
+    description="",
     version="1.0.0",
     contact={"name": "Mohammad Arbaz", "url": "https://github.com/arbaz-builds"},
 )
 
-
-class QueryRequest(BaseModel):
-    query_text: str = Field(
-        ...,
-        min_length=15,
-        max_length=200,
-        description="The blog topic to write about",
-        examples=["How AI agents are changing software development"],
-    )
-    thread_id: str = Field(
-        default="1",
-        description="Conversation/session ID — used to persist memory across requests.",
-    )
-
-
-class BlogResponse(BaseModel):
-    blog_title: str
-    sections: List[str]
-    plan: Plan
-    evidence: Optional[EvidencePack] = None
-    router_decision: RouterStructured
 
 
 @fastapi_app.exception_handler(RequestValidationError)
@@ -76,24 +54,22 @@ async def _invoke(query_text: str, thread_id: str = "1") -> dict:
 async def health_check():
     return {
         "status": "healthy",
-        "service": "blog-writer-api"
+        "service": "idea-api"
     }
 
 
 @fastapi_app.post(
     "/Agent",
-    summary="Generate a blog post",
-    description="Takes a topic and returns a fully researched, structured blog post with title and sections, or a clarifying reply if more detail is needed.",
-    response_description="Blog title and list of markdown sections, or a clarifying reply",
-    tags=["Blog Generation"],
+    summary="",
+    description="",
+    response_description="",
+    tags=[""],
 )
 async def BlogAgent(request: QueryRequest):
     try:
         result = await _invoke(request.query_text, request.thread_id)
-        if "plan" not in result:
-            # intro_router decided this wasn't a blog request yet
-            return {"reply": result["memory"][-1].content}
-        return {
+        
+        return {"messages": result}
             
     except Exception as e:
         print(f"[BlogAgent] Server-side error: {e}")
