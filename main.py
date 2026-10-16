@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from graph import blog_graph
+from graph import build 
 import config
 
 config.validate()
@@ -32,19 +32,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 async def _invoke(query_text: str, thread_id: str = "1") -> dict:
-    """Shared logic: fresh Postgres connection per call, run one turn,
-    return the full result dict.
-
-    Only 'memory' is passed in — intro_router reads the conversation from
-    memory and sets 'topic' itself once it has enough detail. A new
-    connection is opened each time (instead of one long-lived connection)
-    so we never reuse a stale/dead TCP connection left over from a
-    provider-side idle timeout (e.g. Neon auto-suspend, Render free-tier
-    sleep) — same pattern as langgraph-multi-agent.
+    """
     """
     async with AsyncPostgresSaver.from_conn_string(config.DATABASE_URL) as cp:
         await cp.setup()
-        result = await blog_graph.compile(checkpointer=cp).ainvoke(
+        result = await build.compile(checkpointer=cp).ainvoke(
             {"memory": [HumanMessage(content=query_text)]},
             config={"configurable": {"thread_id": thread_id}},
         )
