@@ -94,12 +94,7 @@ async def BlogAgent(request: QueryRequest):
             # intro_router decided this wasn't a blog request yet
             return {"reply": result["memory"][-1].content}
         return {
-            "blog_title": result["plan"].blog_title,
-            "sections": result["sections"],
-            "plan": result.get("plan"),
-            "evidence": result.get("evidence"),
-            "router_decision": result.get("router_decision")
-        }
+            
     except Exception as e:
         print(f"[BlogAgent] Server-side error: {e}")
         raise HTTPException(status_code=500, detail="Internal error occurred, please try again later")
