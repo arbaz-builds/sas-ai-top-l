@@ -28,9 +28,9 @@ Built with LangGraph. The analysis only starts when the client has clearly asked
 |---|---|---|---|---|---|
 | `IntroDecision` | `intro_decision_node.py` / `IntroDecision_LLM` | `IntroDecision_Prompt` | `messages` | `messages`, `decision` | Chats with the client; decides "unclear" (reply and stop) or "analyze_claim" (start) |
 | `LLM_ToolNode` | `tool_calling_node.py` / `Tool_node_LLM` | `ToolCalling_Prompt` | `messages` | `messages` | Decides which tools to call to collect the claim data |
-| `tools` | `tools.py` / `tools` | - | tool calls | `messages` | `rag_tool` searches the indexed claim documents (Pinecone) |
+| `tools` | `tools.py` / `tools` | - | tool calls | `messages` | `rag_tool` searches the indexed claim documents (text and image descriptions, optional `claim_id` filter) and attaches the **original images** it finds (`ToolMessage.artifact`) |
 | `text_analyzer` | `text_analyzer_node.py` / `text_analyzer` | `TextAnalyzer_Prompt` | user text + tool results | `TextDATA` | Facts, issues, and the source of each |
-| `image_analyzer` | `image_analyzer_node.py` / `image_analyzer` | `ImageAnalyzer_Prompt` | images in `messages` | `ImageDATA` | Per image: type, readable text (OCR), content, possible anomalies |
+| `image_analyzer` | `image_analyzer_node.py` / `image_analyzer` | `ImageAnalyzer_Prompt` | images the user sent + images found by `rag_tool` | `ImageDATA` | Per image: type, readable text (OCR), content, possible anomalies |
 | `combine_agent` | `combine_node.py` / `combine_agent` | `Combine_Prompt` | `TextDATA`, `ImageDATA` | `Dataprocess` | Matches, conflicts, missing facts, combined risk signals |
 | `final_score` | `final_score_node.py` / `final_score` | `Final_Prompt` | `Dataprocess` | `Finaloutput` | Score, level, reasons with evidence, what to check next, confidence |
 
@@ -48,11 +48,17 @@ class State(TypedDict):
 
 ### Document ingestion (RAG)
 
-`rag/ingestion.py` -> `RAG(path)`: PDF / DOCX -> LangChain loaders -> `RecursiveCharacterTextSplitter` (1000 chars, 150 overlap) -> embeddings -> Pinecone. `get_store()` returns the store used by `rag_tool`.
+`rag/ingestion.py` -> `RAG(path, claim_id=None)` indexes one file for one claim, **text and images**:
 
-`rag/image_utils.py` -> `image_data(path)`: image -> JPEG -> base64 data URL. Images reach the graph as `image_url` parts of a `HumanMessage`.
+- **Text:** PDF / DOCX -> LangChain loaders -> `RecursiveCharacterTextSplitter` (1000 chars, 150 overlap) -> embeddings -> Pinecone.
+- **Images:** embedded images of PDF / DOCX, scanned PDF pages and chart-heavy pages (rendered to an image), and standalone image files. For each image the **original** is saved (`IMAGE_DIR`, default `data/images`; later S3) and a description made by the vision model (`ImageIndexing_Prompt`: type, readable text, content) is indexed, so the image can be found by search.
+- **Metadata** on every chunk: `source`, `page` (starts at 1), `type` (`text` / `image`), `claim_id`, and `image_path` for images. Chunk ids are deterministic, so indexing the same file again overwrites instead of duplicating.
 
-**Why images go to the vision model directly:** an embedding only helps to *find* an image, it cannot answer "what is the amount on this bill". The Image Analyzer therefore sends the original image to a vision model (one image per call, at most 6 per run, each shrunk to ~120 KB for the API limit).
+`rag_tool` (`tools.py`) searches with an optional `claim_id` filter. When a text chunk matches, the images from the **same page** come along (and the other way round), so a mixed page is understood as a whole. The paths of the original images travel in `ToolMessage.artifact`; the Image Analyzer reads them from there. So images stored in RAG are analyzed from the original file, not from their description.
+
+`rag/image_utils.py`: `image_data(path)` (image -> base64 data URL) and helpers that shrink images to the API size limit.
+
+**Why the original image goes to the vision model:** an embedding or a description only helps to *find* an image; it cannot answer "what is the amount on this bill". The Image Analyzer therefore sends the original image to a vision model (one image per call, at most 6 per run, each shrunk to ~120 KB for the API limit).
 
 ### Stack
 
@@ -65,7 +71,7 @@ pip install -r requirements.txt
 cp .env.example .env        # then fill in the keys
 ```
 
-Required in `.env`: `NVIDIA_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX` (the index dimension must match the embedding model). Model names are set in `models.py`.
+Required in `.env`: `NVIDIA_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX` (the index dimension must match the embedding model). Model names are set in `models.py`. Optional: `IMAGE_DIR` (where original images are kept).
 
 Never commit `.env`. Do not put real claim data in this repo.
 
@@ -106,10 +112,10 @@ CONFIDENCE: medium - one image partly unreadable
 
 | Area | State |
 |---|---|
-| All six system prompts (`prompts.py`) | Done |
+| All system prompts (`prompts.py`, 7 incl. image indexing) | Done |
 | Graph wiring (`graph.py`): intro decision, tool loop, parallel analyzers, fan-in | Done; every import resolves; routing tested offline with stub models |
 | Analyzer, combine and final nodes | Done, tested offline with stub models |
-| RAG ingestion (PDF/DOCX -> Pinecone) | Written, not run against real Pinecone |
+| RAG ingestion (text + images, `claim_id`, same-page images) and `rag_tool` | Done, tested offline with a fake store and fake vision model; not run against real Pinecone / models |
 | `IntroDecision` node (`intro_decision_node.py`) | **To do**: use `with_structured_output`; return the reply as an `AIMessage` and store `decision` in state |
 | `decision` field in `State` | **To do** (graph routing reads it) |
 | `vision_LLM` in `models.py` | **To do**: must be a vision chat model (`ChatNVIDIA`), currently empty |
@@ -119,7 +125,8 @@ CONFIDENCE: medium - one image partly unreadable
 
 ## Known limitations
 
-- **No claim isolation yet.** Documents are not tagged with a `claim_id`, so different claims can mix in retrieval. Must be fixed before any real use.
+- **Claim isolation depends on `claim_id`.** Chunks are tagged and `rag_tool` can filter, but the model has to pass `claim_id` (the prompt tells it to). Without it, all claims are searched. It should be enforced in code before any real use.
+- Indexing a file again overwrites its chunks, but chunks of a *shorter* new version are not removed.
 - Vision models can misread numbers. Original images must stay available to the reviewer; output is for human review.
 - Llama-3.2-vision style models accept one image per request.
 - No audit log, no structured (schema-validated) score output, no evaluation set yet.
@@ -128,7 +135,7 @@ CONFIDENCE: medium - one image partly unreadable
 ## Roadmap
 
 1. Finish `IntroDecision`, add `decision` to `State`, set `vision_LLM`; run end-to-end on a few synthetic claims.
-2. Add `claim_id` metadata / Pinecone namespaces for claim isolation.
+2. Enforce claim isolation in code (Pinecone namespaces per claim) instead of relying on the model to pass `claim_id`.
 3. Upload + ingestion entry point.
 4. Insurance data API tool.
 5. Structured output for the score; deterministic cross-document checks in code.
@@ -149,8 +156,8 @@ text_analyzer_node.py    text analysis node
 image_analyzer_node.py   image analysis node
 combine_node.py          cross-checks text vs images
 final_score_node.py      score + reasons
-rag/ingestion.py         document ingestion + vector store access
-rag/image_utils.py       image -> data URL
+rag/ingestion.py         document + image ingestion, vector store access
+rag/image_utils.py       image -> data URL, image shrinking
 ```
 
 Leftovers from an earlier design, unused and pending removal: `main.py`, `mmrag/` (whole folder), `tests/`.
