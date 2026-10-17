@@ -55,7 +55,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def _invoke(query_text: str, thread_id: str,) 
                async with         AsyncPostgresSaver.from_conn_string(config.DATABASE_URL) as cp:
             await cp.setup()
-            app.state.graph = build.compile(checkpointer=cp)
+            app = build.compile(checkpointer=cp)
+           app.invoke(["message" HumanMessage(content=query),{config:theard _id}]
             
              
             
@@ -81,6 +82,7 @@ async def health_check():
     response_description="The assistant's reply, and the analysis result when an analysis ran",
     tags=["chat"],
 )
+
 async def claim_agent(request: QueryRequest):
     thread_id = request.thread_id or str(uuid.uuid4())
     try:
