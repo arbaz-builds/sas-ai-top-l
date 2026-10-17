@@ -16,7 +16,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver      
 from pydantic import BaseModel, Field, field_validator
 
 from graph import build
@@ -24,20 +24,9 @@ from graph import build
 logger = logging.getLogger("verriffy")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # the memory connection and the compiled graph are created ONCE, not on every request
-    if config.DATABASE_URL:
-        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-        async with AsyncPostgresSaver.from_conn_string(config.DATABASE_URL) as cp:
-            await cp.setup()
-            app.state.graph = build.compile(checkpointer=cp)
-            yield
-    else:
-        logger.warning("DATABASE_URL is not set: chat memory is kept in RAM and is lost on restart")
-        app.state.graph = build.compile(checkpointer=MemorySaver())
-        yield
+
+        
 
 
 fastapi_app = FastAPI(
@@ -64,6 +53,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 async def _invoke(query_text: str, thread_id: str,) 
+               async with         AsyncPostgresSaver.from_conn_string(config.DATABASE_URL) as cp:
+            await cp.setup()
+            app.state.graph = build.compile(checkpointer=cp)
+            
+             
+            
+    else:
+        logger.warning("DATABASE_URL is not set: chat memory is kept in RAM and is lost on restart")
     
     
 
