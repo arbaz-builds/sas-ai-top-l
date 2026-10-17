@@ -159,5 +159,3 @@ final_score_node.py      score + reasons
 rag/ingestion.py         document + image ingestion, vector store access
 rag/image_utils.py       image -> data URL, image shrinking
 ```
-
-Leftovers from an earlier design, unused and pending removal: `main.py`, `mmrag/` (whole folder), `tests/`.
