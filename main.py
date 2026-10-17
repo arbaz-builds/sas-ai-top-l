@@ -90,10 +90,10 @@ async def health_check():
     tags=["chat"],
 )
 
-async def claim_agent(request: QueryRequest):
-    thread_id = request.thread_id or str(uuid.uuid4())
+async def claim_agent(request: str , thread_id : int ):
+    
     try:
-        result = await _invoke(request.query_text, thread_id, request.images)
+        result = await _invoke(request,thread_id )
         return {
             "thread_id": thread_id,
             "reply": _text_of(result["messages"][-1].content),
