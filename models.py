@@ -17,8 +17,8 @@ resision_LLM = ChatNVIDIA(
 )
 
 
-vision_LLM = NVIDIAEmbeddings(
-    model="",
+vision_LLM =ChatNVIDIA(
+    model="meta/llama-3.2-90b-vision-instruct",
     api_key=os.getenv("NVIDIA_API_KEY"),
 )
 
