@@ -63,7 +63,9 @@ async def _invoke(query_text: str, thread_id: str,)
             "thread_id": thread_id
         }
     }
+
 )
+          return result 
             
              
             
@@ -90,7 +92,7 @@ async def health_check():
     tags=["chat"],
 )
 
-async def claim_agent(request: str , thread_id : int ):
+async def claim_agent(request: str , thread_id : str ):
     
     try:
         result = await _invoke(request,thread_id )
