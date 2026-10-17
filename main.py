@@ -56,7 +56,14 @@ async def _invoke(query_text: str, thread_id: str,)
                async with         AsyncPostgresSaver.from_conn_string(config.DATABASE_URL) as cp:
             await cp.setup()
             app = build.compile(checkpointer=cp)
-           app.invoke(["message" HumanMessage(content=query),{config:theard _id}]
+           result = await app.ainvoke(
+    {"messages": [HumanMessage(content=query_text)]},
+    config={
+        "configurable": {
+            "thread_id": thread_id
+        }
+    }
+)
             
              
             
