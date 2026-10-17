@@ -9,39 +9,31 @@ MAX_IMAGES = 6
 def rag_tool(query: str, claim_id: str = ""):
     """Search the indexed insurance claim documents (text and images) and return the most relevant passages.
     Pass claim_id when the claim is known, so only that claim's documents are searched.
-    Images that match are attached for the image analyzer."""
+    The original images that match are attached for the image analyzer."""
     store = get_store()
     claim = {"claim_id": {"$eq": claim_id}} if claim_id else {}
-
     hits = store.similarity_search(query, k=4, filter=claim or None)
-    if not hits:
-        return "No relevant document content found.", {"images": []}
 
-    # mixed documents: if a TEXT chunk matched, also bring the images from the same page (and the other way round)
-    seen = {(d.metadata.get("source"), d.metadata.get("page"), d.metadata.get("type"), d.page_content) for d in hits}
-    extra = []
-    for src, page in {(d.metadata.get("source"), d.metadata.get("page")) for d in hits if d.metadata.get("page") is not None}:
-        hit_types = {d.metadata.get("type") for d in hits if d.metadata.get("source") == src and d.metadata.get("page") == page}
-        if hit_types == {"text", "image"}:
-            continue
-        other = "image" if "text" in hit_types else "text"
-        flt = {**claim, "source": {"$eq": src}, "page": {"$eq": page}, "type": {"$eq": other}}
-        for d in store.similarity_search(query, k=2, filter=flt):
-            key = (d.metadata.get("source"), d.metadata.get("page"), d.metadata.get("type"), d.page_content)
-            if key not in seen:
-                seen.add(key)
-                extra.append(d)
+    # mixed pages: a text hit also brings the images of its page, an image hit brings the text of its page
+    pages = {(d.metadata["source"], d.metadata["page"], d.metadata["type"]) for d in hits if "page" in d.metadata}
+    for source, page, kind in pages:
+        other = "image" if kind == "text" else "text"
+        hits += store.similarity_search(
+            query, k=2, filter={**claim, "source": {"$eq": source}, "page": {"$eq": page}, "type": {"$eq": other}})
 
-    passages, images, paths = [], [], set()
-    for d in hits + extra:
+    seen, lines, images = set(), [], []
+    for d in hits:
         m = d.metadata
-        where = f"{m.get('source', '?')}" + (f" page {m['page']}" if m.get("page") is not None else "")
-        passages.append(f"[{where} | {'image description' if m.get('type') == 'image' else 'text'}] {d.page_content}")
-        p = m.get("image_path")
-        if m.get("type") == "image" and p and p not in paths and len(images) < MAX_IMAGES:
-            paths.add(p)
-            images.append({"path": p, "source": m.get("source"), "page": m.get("page")})
-    return "\n\n".join(passages), {"images": images}
+        if d.page_content in seen:
+            continue
+        seen.add(d.page_content)
+        where = m["source"] + (f" page {m['page']}" if "page" in m else "")
+        if m["type"] == "image":
+            lines.append(f"[{where} | image] (original image attached for the image analysis)")
+            images.append({"path": m["image_path"], "source": m["source"], "page": m.get("page")})
+        else:
+            lines.append(f"[{where} | text] {d.page_content}")
+    return "\n\n".join(lines) or "No relevant document content found.", {"images": images[:MAX_IMAGES]}
 
 
 # TODO: API tool (insurance company data) - needs the real API endpoint, not written yet.

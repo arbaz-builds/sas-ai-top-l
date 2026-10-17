@@ -4,7 +4,6 @@ IntroDecision_Prompt  -> intro_decision_node.py   (decides: chat reply, or start
 ToolCalling_Prompt    -> tool_calling_node.py     (collects data with tools)
 TextAnalyzer_Prompt   -> text_analyzer_node.py
 ImageAnalyzer_Prompt  -> image_analyzer_node.py
-ImageIndexing_Prompt  -> rag/ingestion.py        (describes an image so it can be found by search)
 Combine_Prompt        -> combine_node.py
 Final_Prompt          -> final_score_node.py
 """
@@ -95,11 +94,3 @@ Give:
 
 Rules: use only the combined analysis. Never guess or invent. Never approve or reject the claim, and never say the claimant lied or committed fraud. An image anomaly is a possible sign, not proof.
 Keep it short and clear."""
-
-
-ImageIndexing_Prompt = """You are indexing ONE image from an insurance claim so it can be found by search later.
-Write a plain-text description with:
-1. TYPE: what the image or document is (bill, discharge summary, ID, policy paper, photo of damage, etc.).
-2. TEXT: all readable text exactly as written (names, policy number, dates, amounts, hospital or vendor, stamps). Keep table rows. Write "unreadable" for parts you cannot read. Never guess numbers.
-3. CONTENT: for photos, what is visible (what is damaged, where, how severe).
-Do not judge or analyze the claim. Do not invent anything that is not visible."""

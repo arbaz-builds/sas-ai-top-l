@@ -1,32 +1,43 @@
 import hashlib
-import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_core.documents import Document
-from langchain_core.messages import HumanMessage
+from langchain_core.embeddings import Embeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from models import client_Embedding, vision_LLM
-from prompts import ImageIndexing_Prompt
+from models import client_Embedding
 from rag.image_utils import shrink_jpeg, to_data_url
 
 load_dotenv()
-log = logging.getLogger("rag")
 
 PINECONE_INDEX = os.getenv("PINECONE_INDEX")  # PINECONE_API_KEY is read from .env automatically
 IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "data/images"))  # original images are kept here (later: S3)
 IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
+IMAGE_MARK = "image-file:"    # an image chunk's text is "image-file:<path>"
 MAX_IMAGES_PER_DOC = 40
 SCANNED_PAGE_MIN_CHARS = 40   # page with less text and no image = scanned page -> render it
 VECTOR_PAGE_DRAWINGS = 25     # page with this many vector shapes = chart -> render it
 
 
-# ----------------------------------------------------------------------------- images in files
+class _Embedder(Embeddings):
+    """Text chunks are embedded as text. An image chunk is embedded as the IMAGE itself
+    (llama-nemotron-embed-vl reads images), so no vision model is needed to index images."""
+
+    def embed_documents(self, texts):
+        inputs = [to_data_url(Path(t[len(IMAGE_MARK):]).read_bytes()) if t.startswith(IMAGE_MARK) else t for t in texts]
+        vectors = []
+        for i in range(0, len(inputs), 16):          # small batches: images are big
+            vectors += client_Embedding.embed_documents(inputs[i:i + 16])
+        return vectors
+
+    def embed_query(self, text):
+        return client_Embedding.embed_query(text)
+
+
 def _pdf_images(path):
     """[(page_number, jpeg_bytes)]: embedded images, plus scanned / chart-heavy pages rendered as an image."""
     import pymupdf
@@ -68,18 +79,15 @@ def _pdf_images(path):
 def _docx_images(path):
     import docx
 
-    d = docx.Document(str(path))
     out = []
-    for rel in d.part.rels.values():
-        if rel.is_external or "/image" not in rel.reltype:
-            continue
-        jpeg = shrink_jpeg(rel.target_part.blob)
-        if jpeg:
-            out.append((None, jpeg))
+    for rel in docx.Document(str(path)).part.rels.values():
+        if not rel.is_external and "/image" in rel.reltype:
+            jpeg = shrink_jpeg(rel.target_part.blob)
+            if jpeg:
+                out.append((None, jpeg))
     return out
 
 
-# ----------------------------------------------------------------------------- helpers
 def _meta(source, page, kind, claim_id, image_path=None):
     # Pinecone metadata cannot hold None, so empty values are simply left out
     m = {"source": source, "type": kind}
@@ -92,25 +100,8 @@ def _meta(source, page, kind, claim_id, image_path=None):
     return m
 
 
-def _describe(jpeg):
-    msg = HumanMessage(content=[
-        {"type": "text", "text": ImageIndexing_Prompt},
-        {"type": "image_url", "image_url": {"url": to_data_url(jpeg)}},
-    ])
-    return (vision_LLM.invoke([msg]).content or "").strip()
-
-
-def _ids(claim_id, source, chunks):
-    # same file + same claim -> same ids, so indexing a file twice overwrites instead of duplicating
-    return [
-        hashlib.sha1(f"{claim_id}|{source}|{c.metadata['type']}|{c.metadata.get('page')}|{n}".encode()).hexdigest()
-        for n, c in enumerate(chunks)
-    ]
-
-
-# ----------------------------------------------------------------------------- main entry
 def RAG(data, claim_id=None):
-    """Index a file for one claim: text chunks AND images (original image saved, its description indexed)."""
+    """Index a file for one claim: text chunks, and every image (original saved, image embedded directly)."""
     path = Path(data)
     ext = path.suffix.lower()
     source = path.name
@@ -131,47 +122,27 @@ def RAG(data, claim_id=None):
         chunk_overlap=150
     )
 
-    # ---- text
     chunks = []
     for doc in (loader.load() if loader else []):
         page = doc.metadata.get("page")                    # PyPDF pages start at 0, people count from 1
-        page = page + 1 if isinstance(page, int) else None
-        doc.metadata = _meta(source, page, "text", claim_id)
+        doc.metadata = _meta(source, page + 1 if isinstance(page, int) else None, "text", claim_id)
         chunks.extend(splitter.split_documents([doc]))
 
-    # ---- images: describe with the vision model (in parallel), keep the original file
-    images = images[:MAX_IMAGES_PER_DOC]
-
-    def describe(item):
-        try:
-            return _describe(item[1])
-        except Exception as e:                             # one bad image must not stop the whole file
-            log.warning("could not describe an image of %s: %s", source, e)
-            return ""
-
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        descriptions = list(ex.map(describe, images))
-
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
-    for (page, jpeg), description in zip(images, descriptions):
-        if not description:
-            continue
-        img_path = IMAGE_DIR / f"{hashlib.sha1(f'{claim_id}|{source}'.encode()).hexdigest()[:8]}_{hashlib.sha1(jpeg).hexdigest()[:12]}.jpg"
+    owner = hashlib.sha1(f"{claim_id}|{source}".encode()).hexdigest()[:8]
+    for page, jpeg in images[:MAX_IMAGES_PER_DOC]:
+        img_path = IMAGE_DIR / f"{owner}_{hashlib.sha1(jpeg).hexdigest()[:12]}.jpg"
         img_path.write_bytes(jpeg)
-        meta = _meta(source, page, "image", claim_id, str(img_path))
-        chunks.extend(splitter.split_documents([Document(page_content=description, metadata=meta)]))
+        chunks.append(Document(page_content=IMAGE_MARK + str(img_path),
+                               metadata=_meta(source, page, "image", claim_id, str(img_path))))
 
     if not chunks:
         return
 
-    docs = PineconeVectorStore.from_documents(
-        chunks,
-        embedding=client_Embedding,
-        index_name=PINECONE_INDEX,
-        ids=_ids(claim_id, source, chunks),
-    )
-
-    return docs
+    # same file + same claim -> same ids, so indexing a file twice overwrites instead of duplicating
+    ids = [hashlib.sha1(f"{claim_id}|{source}|{c.metadata['type']}|{c.metadata.get('page')}|{n}".encode()).hexdigest()
+           for n, c in enumerate(chunks)]
+    return PineconeVectorStore.from_documents(chunks, embedding=_Embedder(), index_name=PINECONE_INDEX, ids=ids)
 
 
 def get_store():

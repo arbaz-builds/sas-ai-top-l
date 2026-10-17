@@ -48,17 +48,17 @@ class State(TypedDict):
 
 ### Document ingestion (RAG)
 
-`rag/ingestion.py` -> `RAG(path, claim_id=None)` indexes one file for one claim, **text and images**:
+`rag/ingestion.py` -> `RAG(path, claim_id=None)` indexes one file for one claim, **text and images**. No vision model is used here:
 
 - **Text:** PDF / DOCX -> LangChain loaders -> `RecursiveCharacterTextSplitter` (1000 chars, 150 overlap) -> embeddings -> Pinecone.
-- **Images:** embedded images of PDF / DOCX, scanned PDF pages and chart-heavy pages (rendered to an image), and standalone image files. For each image the **original** is saved (`IMAGE_DIR`, default `data/images`; later S3) and a description made by the vision model (`ImageIndexing_Prompt`: type, readable text, content) is indexed, so the image can be found by search.
+- **Images:** embedded images of PDF / DOCX, scanned PDF pages and chart-heavy pages (rendered to an image), and standalone image files. The **original** is saved (`IMAGE_DIR`, default `data/images`; later S3) and the image itself is **embedded directly** by `llama-nemotron-embed-vl-1b-v2` (it reads text and images in the same vector space), so a text question can find an image.
 - **Metadata** on every chunk: `source`, `page` (starts at 1), `type` (`text` / `image`), `claim_id`, and `image_path` for images. Chunk ids are deterministic, so indexing the same file again overwrites instead of duplicating.
 
-`rag_tool` (`tools.py`) searches with an optional `claim_id` filter. When a text chunk matches, the images from the **same page** come along (and the other way round), so a mixed page is understood as a whole. The paths of the original images travel in `ToolMessage.artifact`; the Image Analyzer reads them from there. So images stored in RAG are analyzed from the original file, not from their description.
+`rag_tool` (`tools.py`) searches with an optional `claim_id` filter. On a mixed page a text hit also brings the images of that page, and an image hit brings the text of that page. The paths of the original images travel in `ToolMessage.artifact`.
 
-`rag/image_utils.py`: `image_data(path)` (image -> base64 data URL) and helpers that shrink images to the API size limit.
+**Who does what with images:** RAG only *stores and finds* them. The **Image Analyzer** is the only node with a vision model: it looks at the original images (the ones the user sent and the ones `rag_tool` found) and reads their text, content and possible anomalies. An embedding can only help to *find* an image; it cannot answer "what is the amount on this bill".
 
-**Why the original image goes to the vision model:** an embedding or a description only helps to *find* an image; it cannot answer "what is the amount on this bill". The Image Analyzer therefore sends the original image to a vision model (one image per call, at most 6 per run, each shrunk to ~120 KB for the API limit).
+`rag/image_utils.py`: `image_data(path)` (image -> base64 data URL) and helpers that shrink images to the API size limit (one image per vision call, at most 6 per run, ~120 KB each).
 
 ### Stack
 
@@ -112,10 +112,10 @@ CONFIDENCE: medium - one image partly unreadable
 
 | Area | State |
 |---|---|
-| All system prompts (`prompts.py`, 7 incl. image indexing) | Done |
+| All system prompts (`prompts.py`, 6) | Done |
 | Graph wiring (`graph.py`): intro decision, tool loop, parallel analyzers, fan-in | Done; every import resolves; routing tested offline with stub models |
 | Analyzer, combine and final nodes | Done, tested offline with stub models |
-| RAG ingestion (text + images, `claim_id`, same-page images) and `rag_tool` | Done, tested offline with a fake store and fake vision model; not run against real Pinecone / models |
+| RAG ingestion (text + images embedded directly, `claim_id`, same-page images) and `rag_tool` | Done, tested offline with a fake store and fake embeddings; **not yet run against real Pinecone / the real embedding model** (image embedding through `NVIDIAEmbeddings` must be confirmed with a real key) |
 | `IntroDecision` node (`intro_decision_node.py`) | **To do**: use `with_structured_output`; return the reply as an `AIMessage` and store `decision` in state |
 | `decision` field in `State` | **To do** (graph routing reads it) |
 | `vision_LLM` in `models.py` | **To do**: must be a vision chat model (`ChatNVIDIA`), currently empty |
@@ -156,6 +156,6 @@ text_analyzer_node.py    text analysis node
 image_analyzer_node.py   image analysis node
 combine_node.py          cross-checks text vs images
 final_score_node.py      score + reasons
-rag/ingestion.py         document + image ingestion, vector store access
+rag/ingestion.py         document + image ingestion (images embedded directly), vector store access
 rag/image_utils.py       image -> data URL, image shrinking
 ```
