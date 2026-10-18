@@ -96,11 +96,9 @@ async def claim_agent(request: str , thread_id : str ):
     
     try:
         result = await _invoke(request,thread_id )
-        return {
-            "thread_id": thread_id,
-            "reply": _text_of(result["messages"][-1].content),
-            "final_output": result.get("Finaloutput") or None,
-        }
+        return {"reply":
+_text_of(result["messages"][-1].content)
+              } 
 
     except Exception:
         logger.exception("[claim_agent] server-side error")
