@@ -49,18 +49,32 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 
-
-
-
-
-
 async def _invoke(query_text: str, thread_id: str):
-    async with AsyncPostgresSaver.from_conn_string(
-        config.DATABASE_URL
-    ) as cp:
-        await cp.setup()
+    if config.DATABASE_URL:
+        async with AsyncPostgresSaver.from_conn_string(
+            config.DATABASE_URL
+        ) as cp:
+            await cp.setup()
 
-        app = build.compile(checkpointer=cp)
+            app = build.compile(checkpointer=cp)
+
+            result = await app.ainvoke(
+                {"messages": [HumanMessage(content=query_text)]},
+                config={
+                    "configurable": {
+                        "thread_id": thread_id
+                    }
+                }
+            )
+
+            return result
+
+    else:
+        logger.warning(
+            "DATABASE_URL is not set: using in-memory execution"
+        )
+
+        app = build.compile()
 
         result = await app.ainvoke(
             {"messages": [HumanMessage(content=query_text)]},
@@ -71,12 +85,12 @@ async def _invoke(query_text: str, thread_id: str):
             }
         )
 
-        return result         
-             
-            
-    else:
-        logger.warning("DATABASE_URL is not set: chat memory is kept in RAM and is lost on restart")
-    
+        return result
+
+
+
+
+
     
 
 
