@@ -1,25 +1,23 @@
 import os
-
-from dotenv import load_dotenv
 from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings
 
-load_dotenv()  # keys live in .env (NVIDIA_API_KEY), never in the code
+
 
 client_Embedding = NVIDIAEmbeddings(
     model="nvidia/llama-nemotron-embed-vl-1b-v2",
-    api_key=os.getenv("NVIDIA_API_KEY"),
+    api_key=,
     truncate="END",
 )
 
 resision_LLM = ChatNVIDIA(
     model="z-ai/glm-5.3",
-    api_key=os.getenv("NVIDIA_API_KEY"),
+    api_key=,
 )
 
 
 vision_LLM =ChatNVIDIA(
     model="meta/llama-3.2-90b-vision-instruct",
-    api_key=os.getenv("NVIDIA_API_KEY"),
+    api_key=,
 )
 
 
