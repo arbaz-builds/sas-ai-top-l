@@ -10,7 +10,6 @@ from typing import List, Optional
 
 import config
 
-config.validate()  # fail early, with a clear message, if a key is missing (before the models are created)
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
