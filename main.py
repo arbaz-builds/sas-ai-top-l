@@ -114,8 +114,7 @@ async def claim_agent(request: str , thread_id : str ):
     
     try:
         result = await _invoke(request,thread_id )
-        return {"reply":
-_text_of(result["messages"][-1].content)
+        return {"reply":result["messages"][-1].content)
               } 
 
     except Exception:
