@@ -35,7 +35,6 @@ fastapi_app = FastAPI(
                 "get a review score with reasons and evidence for a human reviewer.",
     version="1.0.0",
     contact={"name": "Mohammad Arbaz", "url": "https://github.com/arbaz-builds"},
-    lifespan=lifespan,
 )
 
 
