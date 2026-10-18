@@ -51,7 +51,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 
-async def _invoke(query_text: str, thread_id: str,) 
+async def _invoke(query_text: str, thread_id: str,):
                async with         AsyncPostgresSaver.from_conn_string(config.DATABASE_URL) as cp:
             await cp.setup()
             app = build.compile(checkpointer=cp)
