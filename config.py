@@ -8,6 +8,6 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX = os.getenv("PINECONE_INDEX")
 DATABASE_URL = os.getenv("DATABASE_URL")
 IMAGE_DIR = os.getenv("IMAGE_DIR", "images")
-Langsmith = os.getenv(langsmith)
+Langsmith = os.getenv("langsmith")
 
 
