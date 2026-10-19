@@ -9,4 +9,7 @@ def IntroDecision_LLM(state: State):
     DATA = [SystemMessage(content=IntroDecision_Prompt)] + state["messages"]
     Structure_LLM = resision_LLM.with_structured_output(IntroDecision)
     output = Structure_LLM.invoke(DATA)
-    return {"messages": [output]}
+    return {
+        "messages": [AIMessage(content=output.reply)],
+        "RefindTopic": output.RefindTopic or "",
+    }
