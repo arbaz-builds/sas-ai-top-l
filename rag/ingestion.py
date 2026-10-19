@@ -1,10 +1,13 @@
 import hashlib
 import logging
 import os
+import re
+import threading
 from pathlib import Path
 
-import pymupdf
 import docx
+import psycopg
+import pymupdf
 
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_core.documents import Document
@@ -15,8 +18,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
 from models import client_Embedding
-from rag import image_store
-from rag.common import check_claim_id
 from rag.image_utils import shrink_jpeg, to_data_url
 
 logger = logging.getLogger("verriffy.rag")
@@ -35,6 +36,84 @@ OCR_PROMPT = ("Transcribe all the text visible in this document image exactly as
               "number, date, amount and table row. Output only the transcription. "
               "If there is no readable text, output nothing.")
 
+CLAIM_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+def check_claim_id(claim_id):
+    """A claim id is required everywhere; this is also what keeps it safe to use in a file path / namespace."""
+    if not isinstance(claim_id, str) or not CLAIM_ID_RE.fullmatch(claim_id):
+        raise ValueError("claim_id is required (letters, digits, '-' and '_' only, max 64 characters)")
+    return claim_id
+
+
+# ------------------------------------------------------------------ original images (Postgres + local cache)
+# Postgres is the source of truth (it survives restarts and redeploys); the local disk is only a cache.
+CACHE_DIR = Path(config.IMAGE_DIR)
+_lock = threading.Lock()
+_table_ready = False
+
+
+def _connect():
+    if not config.DATABASE_URL:
+        raise ValueError("DATABASE_URL is not configured (it is needed to store the original images)")
+    return psycopg.connect(config.DATABASE_URL, autocommit=True)
+
+
+def _ensure_table():
+    global _table_ready
+    if _table_ready:
+        return
+    with _lock:
+        if _table_ready:
+            return
+        with _connect() as conn:
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS rag_images (
+                       claim_id  TEXT  NOT NULL,
+                       image_key TEXT  NOT NULL,
+                       data      BYTEA NOT NULL,
+                       PRIMARY KEY (claim_id, image_key))"""
+            )
+        _table_ready = True
+
+
+def save_images(claim_id, images):
+    """images: {image_key: jpeg bytes}. Saving the same key twice is harmless."""
+    claim_id = check_claim_id(claim_id)
+    if not images:
+        return
+    _ensure_table()
+    with _connect() as conn, conn.cursor() as cur:
+        cur.executemany(
+            "INSERT INTO rag_images (claim_id, image_key, data) VALUES (%s, %s, %s) "
+            "ON CONFLICT (claim_id, image_key) DO NOTHING",
+            [(claim_id, key, jpeg) for key, jpeg in images.items()],
+        )
+
+
+def image_path(claim_id, image_key):
+    """Local file of the image (restored from Postgres if the cache is gone). None if it does not exist."""
+    claim_id = check_claim_id(claim_id)
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", str(image_key)):
+        return None
+    path = CACHE_DIR / claim_id / f"{image_key}.jpg"
+    if path.is_file():
+        return path
+    _ensure_table()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT data FROM rag_images WHERE claim_id = %s AND image_key = %s", (claim_id, image_key)
+        ).fetchone()
+    if not row:
+        return None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_bytes(bytes(row[0]))
+    tmp.replace(path)
+    return path
+
+
+# ------------------------------------------------------------------ indexing
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=150,
@@ -250,7 +329,7 @@ def RAG(data, claim_id):
         ids.append(f"{doc_id}-{kind}-{counts[kind]}")
 
     # images first: if saving the vectors fails afterwards, nothing points to a missing image
-    image_store.save_images(claim_id, stored_images)
+    save_images(claim_id, stored_images)
 
     store = PineconeVectorStore(
         index_name=config.PINECONE_INDEX,
