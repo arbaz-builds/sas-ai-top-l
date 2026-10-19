@@ -1,4 +1,5 @@
 import config
+import os
 from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings
 
 # NVIDIA Embedding Model
@@ -19,3 +20,12 @@ vision_LLM = ChatNVIDIA(
     model="meta/llama-3.2-90b-vision-instruct",
     api_key=config.NVIDIA_API_KEY,
 )
+
+
+
+
+
+
+os.environ["LANGSMITH_TRACING"] = "true"
+os.environ["LANGSMITH_API_KEY"] = config.LANGSMITH_API_KEY
+os.environ["LANGSMITH_PROJECT"] = "NVIDIA-Multimodal-AI"
