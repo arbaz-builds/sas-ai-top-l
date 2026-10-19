@@ -33,6 +33,8 @@ class IntroDecision(BaseModel):
 
 class State(TypedDict):
       messages: Annotated[List[BaseMessage], add_messages]
+      decision: str
+      RefindTopic: str
       TextDATA: str
       ImageDATA: str
       Dataprocess: str
