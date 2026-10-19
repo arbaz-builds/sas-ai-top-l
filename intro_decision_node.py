@@ -11,5 +11,6 @@ def IntroDecision_LLM(state: State):
     output = Structure_LLM.invoke(DATA)
     return {
         "messages": [AIMessage(content=output.reply)],
+        "decision": output.decision,
         "RefindTopic": output.RefindTopic or "",
     }
