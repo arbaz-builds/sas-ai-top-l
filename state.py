@@ -30,6 +30,57 @@ class IntroDecision(BaseModel):
     )
 
 
+class Evidence(BaseModel):
+    source: str
+    location: Optional[str] = None
+    excerpt: Optional[str] = None
+    explanation: str
+
+
+class Finding(BaseModel):
+    title: str
+    category: Literal[
+        "amount_mismatch",
+        "date_mismatch",
+        "document_inconsistency",
+        "missing_information",
+        "image_concern",
+        "other"
+    ]
+    severity: Literal["low", "medium", "high"]
+    description: str
+    evidence: List[Evidence] = Field(default_factory=list)
+    requires_human_verification: bool = True
+
+
+class ClaimAnalysis(BaseModel):
+    review_score: int = Field(ge=0, le=100)
+    status: Literal[
+        "review_recommended",
+        "additional_information_needed",
+        "no_material_discrepancy_identified"
+    ]
+    summary: str
+    findings: List[Finding] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
+    human_review_required: bool = True
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class State(TypedDict):
       messages: Annotated[List[BaseMessage], add_messages]
