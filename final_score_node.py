@@ -1,4 +1,4 @@
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from state import State, ClaimAnalysis
 from models import resision_LLM
@@ -15,4 +15,12 @@ Final_DATA = [
 Structure_LLM = resision_LLM.with_structured_output(ClaimAnalysis)
 output = Structure_LLM.invoke(Final_DATA)
 
-return {"Finaloutput": output}
+return {
+    "Finaloutput": output,
+    "messages": [
+        AIMessage(
+            content=output.model_dump_json(),
+            additional_kwargs={"message_type": "claim_analysis"}
+        )
+    ]
+}
