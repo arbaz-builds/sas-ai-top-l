@@ -89,4 +89,4 @@ class State(TypedDict):
       TextDATA: str
       ImageDATA: str
       Dataprocess: str
-      Finaloutput: str 
+      Finaloutput: Optional[ClaimAnalysis]
