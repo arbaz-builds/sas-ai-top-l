@@ -24,8 +24,32 @@ logger = logging.getLogger("verriffy")
 
 
 
+app = FastAPI()
+
+@app.post("/new-chat")
+def new_chat(user_id: str):
+    conversation_id = str(uuid.uuid4())
+
+    return {
+        "user_id": user_id,
+        "conversation_id": conversation_id
+    }
 
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 fastapi_app = FastAPI(
