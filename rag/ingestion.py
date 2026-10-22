@@ -7,7 +7,6 @@ from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_pinecone import PineconeVectorStore
 
 from models import client_Embedding, vision_LLM
-from rag.image_utils import image_data
 import config
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
