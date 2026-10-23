@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 import config
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
@@ -89,6 +90,19 @@ fastapi_app = FastAPI(
         "url": "https://github.com/arbaz-builds",
     },
     lifespan=lifespan,
+)
+
+
+# --------------------------------------------------
+# CORS MIDDLEWARE
+# --------------------------------------------------
+
+fastapi_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
