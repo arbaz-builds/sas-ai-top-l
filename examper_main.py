@@ -261,3 +261,10 @@ async def claim_agent(body: ChatRequest):
                 "please try again later"
             ),
         )
+
+
+
+fastapi_app.post("/document)
+def RAG_document()
+     result =ingest()
+     return {"store_secufull": result}
