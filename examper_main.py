@@ -264,7 +264,7 @@ async def claim_agent(body: ChatRequest):
 
 
 
-fastapi_app.post("/document)
-def RAG_document(path,user_id)
-     result =ingest(file_path = path , user_id = user_id )
-     return {"store_secufull": result}
+@fastapi_app.post("/document")
+def RAG_document(path: str, user_id: str):
+    result = ingest(file_path=path, user_id=user_id)
+    return {"store_successfully": result}
