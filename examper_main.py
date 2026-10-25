@@ -28,6 +28,9 @@ from pydantic import BaseModel, Field, field_validator
 from graph import build
 
 
+from rag.intergion import  ingest
+
+
 logger = logging.getLogger("verriffy")
 
 
