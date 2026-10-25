@@ -26,7 +26,11 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from pydantic import BaseModel, Field, field_validator
 
+
+
+from rag.ingestion import  ingest
 from graph import build
+
 
 
 logger = logging.getLogger("verriffy")
