@@ -93,6 +93,17 @@ fastapi_app = FastAPI(
 )
 
 
+
+
+@fastapi_app.post("/document")
+def RAG_document(path: str, user_id: str):
+    result = ingest(file_path=path, user_id=user_id)
+    return {"store_successfully": result}
+
+
+
+
+
 # --------------------------------------------------
 # CORS MIDDLEWARE
 # --------------------------------------------------
