@@ -66,5 +66,14 @@ def ingest(file_path, user_id, source_name=None):
     store.add_documents(chunks)
 
     return {"doc_id": doc_id, "chunks": len(chunks)}
+  
+
+ def retrieve(query, user_id, k=4):
+    store = PineconeVectorStore(
+        index_name=config.PINECONE_INDEX,
+        embedding=client_Embedding,
+        namespace=str(user_id),
+    )
+    
 
     return store.similarity_search(query, k=k)
