@@ -243,17 +243,11 @@ async def health_check():
     tags=["chat"],
 )
 async def new_chat():
-    """
-    Generate a new conversation ID.
-
-    The frontend should call this endpoint only when
-    the user explicitly starts a new chat.
-    """
-
-    thread_id = str(uuid.uuid4())
+    All_id = str(uuid.uuid4())
 
     return {
-        "thread_id": thread_id,
+        "thread_id": All_id,
+        "user_id": All_id,   # same value
         "message": "New chat created successfully",
     }
 
