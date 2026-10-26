@@ -24,7 +24,7 @@ def load_file(file_path):
     return TextLoader(str(path), encoding="utf-8").load()
 
 
-def ingest(file_path, user_id):
+def ingest(file_path, user_id, source_name=None):
     path = Path(file_path)
     if not path.is_file():
         raise FileNotFoundError(file_path)
@@ -55,7 +55,7 @@ def ingest(file_path, user_id):
             "user_id": user_id,
             "doc_id": doc_id,
             "chunk_id": str(uuid.uuid4()),
-            "source": path.name,
+            "source": source_name or path.name,
         })
 
     store = PineconeVectorStore(
@@ -67,11 +67,4 @@ def ingest(file_path, user_id):
 
     return {"doc_id": doc_id, "chunks": len(chunks)}
 
-
-def retrieve(query, user_id, k=4):
-    store = PineconeVectorStore(
-        index_name=config.PINECONE_INDEX,
-        embedding=client_Embedding,
-        namespace=str(user_id),
-    )
     return store.similarity_search(query, k=k)
