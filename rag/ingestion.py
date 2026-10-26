@@ -65,7 +65,8 @@ def ingest(file_path, user_id, source_name=None):
     )
     store.add_documents(chunks)
 
-        return {"doc_id": doc_id, "chunks": len(chunks)}
+    return {"doc_id": doc_id, "chunks":
+len(chunks)}
 
 
 def retrieve(query, user_id, k=4):
