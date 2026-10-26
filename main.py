@@ -11,6 +11,8 @@ Run:
 
 import logging
 import uuid
+import os, shutil, tempfile
+
 
 from contextlib import asynccontextmanager
 
@@ -20,6 +22,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi import UploadFile, File
+
+
+
+
 
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -100,9 +107,20 @@ fastapi_app = FastAPI(
 
 
 @fastapi_app.post("/document")
-def RAG_document(path: str, user_id: str):
-    result = ingest(file_path=path, user_id=user_id)
+def RAG_document(user_id: str, file: UploadFile = File(...)):
+    suffix = os.path.splitext(file.filename)[1]
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+
+    result = ingest(file_path=tmp_path, user_id=user_id, source_name=file.filename)
+    os.remove(tmp_path)
+
     return {"store_successfully": result}
+
+
+
 
 
 
