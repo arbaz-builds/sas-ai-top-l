@@ -107,7 +107,7 @@ fastapi_app = FastAPI(
 
 
 @fastapi_app.post("/document")
-def RAG_document(user_id: str, file: UploadFile = File(...)):
+def RAG_document(thread_id: str, file: UploadFile = File(...)):
     suffix = os.path.splitext(file.filename)[1]
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
