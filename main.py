@@ -107,15 +107,17 @@ fastapi_app = FastAPI(
 
 
 @fastapi_app.post("/document")
-def RAG_document(user_id: str, file: UploadFile = File(...)):
+def RAG_document(thread_id: str, file: UploadFile = File(...)):
     suffix = os.path.splitext(file.filename)[1]
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
-    result = ingest(file_path=tmp_path, user_id=thread_id, source_name=file.filename)
-    os.remove(tmp_path)
+    try:
+        result = ingest(file_path=tmp_path, user_id=thread_id, source_name=file.filename)
+    finally:
+        os.remove(tmp_path)
 
     return {"store_successfully": result}
 
