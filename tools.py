@@ -1,5 +1,6 @@
 import logging
 
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from rag.ingestion import retrieve
 
@@ -7,28 +8,29 @@ logger = logging.getLogger(__name__)
 
 
 @tool
-def rag_tool(query: str, claim_id: str) -> str:
+def rag_tool(query: str, config: RunnableConfig) -> str:
     """
-    Search indexed insurance claim documents using a simple query.
+    Search the uploaded insurance claim documents of the current chat.
 
     Args:
         query: Question or information to search for.
-        claim_id: User ID used as the Pinecone namespace.
     """
     query = query.strip()
-    claim_id = claim_id.strip()
 
     if not query:
         return "Error: search query cannot be empty."
 
-    if not claim_id:
-        return "Error: claim_id is required."
+    # The chat's thread_id is also the Pinecone namespace.
+    # It comes from the graph config, not from the LLM.
+    thread_id = (config.get("configurable") or {}).get("thread_id")
+
+    if not thread_id:
+        return "Error: thread_id is missing in the config."
 
     try:
-        # Search existing documents using the retrieve function.
         documents = retrieve(
             query=query,
-            user_id=claim_id,
+            user_id=thread_id,
             k=4,
         )
 
