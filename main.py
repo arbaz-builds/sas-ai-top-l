@@ -107,14 +107,14 @@ fastapi_app = FastAPI(
 
 
 @fastapi_app.post("/document")
-def RAG_document(thread_id: str, file: UploadFile = File(...)):
+def RAG_document(user_id: str, file: UploadFile = File(...)):
     suffix = os.path.splitext(file.filename)[1]
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
-    result = ingest(file_path=tmp_path, user_id=user_id, source_name=file.filename)
+    result = ingest(file_path=tmp_path, user_id=thread_id, source_name=file.filename)
     os.remove(tmp_path)
 
     return {"store_successfully": result}
@@ -237,16 +237,12 @@ async def health_check():
 # CREATE NEW CHAT
 # --------------------------------------------------
 
-@fastapi_app.post(
-    "/new-chat",
-    summary="Create a new conversation",
-    tags=["chat"],
-)
+@fastapi_app.post("/new-chat", summary="Create a new conversation", tags=["chat"])
 async def new_chat():
-    All_id = str(uuid.uuid4())
+    thread_id = str(uuid.uuid4())
 
     return {
-        "all_id": All_id,
+        "thread_id": thread_id,
         "message": "New chat created successfully",
     }
 
