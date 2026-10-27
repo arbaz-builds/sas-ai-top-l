@@ -246,8 +246,7 @@ async def new_chat():
     All_id = str(uuid.uuid4())
 
     return {
-        "thread_id": All_id,
-        "user_id": All_id,   # same value
+        "all_id": All_id,
         "message": "New chat created successfully",
     }
 
