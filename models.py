@@ -11,7 +11,7 @@ client_Embedding = NVIDIAEmbeddings(
 
 # LLM for reasoning / revision
 resision_LLM = ChatNVIDIA(
-    model="z-ai/glm-5.3",
+    model="nvidia/nemotron-3.5-super-vl-120b-a12b",
     api_key=config.NVIDIA_API_KEY,
 )
 
