@@ -1,5 +1,7 @@
 import uuid
 from pathlib import Path
+from rag.image_utils import image_data
+
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
