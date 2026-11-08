@@ -1,6 +1,15 @@
 import config
 import os
-from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_openai import ChatOpenAI
+
+
+LLM= ChatOpenAI(
+          model="openai/gpt-oss-120b",
+          api_key=config.open_API,
+          base_url = "https://api.groq.com/openai/v1"
+         )
+
 
 # NVIDIA Embedding Model
 client_Embedding = NVIDIAEmbeddings(
@@ -9,11 +18,7 @@ client_Embedding = NVIDIAEmbeddings(
     truncate="END",
 )
 
-# LLM for reasoning / revision
-resision_LLM = ChatNVIDIA(
-    model="nvidia/nemotron-3.5-super-vl-120b-a12b",
-    api_key=config.NVIDIA_API_KEY,
-)
+
 
 # Vision LLM
 vision_LLM = ChatNVIDIA(
