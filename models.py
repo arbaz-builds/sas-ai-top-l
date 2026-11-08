@@ -1,6 +1,6 @@
 import config
 import os
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_nvidia_ai_endpoints import ChatNVIDIA , NVIDIAEmbeddings
 from langchain_openai import ChatOpenAI
 
 
