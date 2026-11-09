@@ -10,11 +10,24 @@ logger = logging.getLogger(__name__)
 @tool
 def rag_tool(query: str, config: RunnableConfig) -> str:
     """
-    Search the uploaded insurance claim documents of the current chat.
+Search and retrieve relevant information from insurance claim
+documents uploaded in the current conversation.
 
-    Args:
-        query: Question or information to search for.
-    """
+Args:
+    query: A specific, descriptive natural-language question
+           describing the exact claim information to retrieve.
+
+Guidelines:
+    - Generate clear and focused search queries.
+    - Include relevant insurance terminology and keywords.
+    - Search for one information category at a time.
+    - Avoid generic queries such as "claim", "insurance",
+      "policy", or "details".
+    - Do not combine unrelated information categories.
+    - Retrieve information relevant to the user's request.
+    - Use previous search results to avoid duplicate queries.
+    - Return relevant document passages as evidence.
+"""
     query = query.strip()
 
     if not query:
