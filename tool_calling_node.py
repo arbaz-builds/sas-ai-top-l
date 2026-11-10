@@ -1,7 +1,7 @@
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from models import resision_LLM
+from models import RAG_LLM
 from prompts import ToolCalling_Prompt
 from state import State
 from tools import tools
@@ -21,6 +21,6 @@ def Tool_node_LLM(state: State):
         [SystemMessage(content=ToolCalling_Prompt), HumanMessage(content=state["RefindTopic"])]
         + _loop_messages(state["messages"])
     )
-    TOOL_LLM = resision_LLM.bind_tools(tools)
+    TOOL_LLM = RAG_LLM.bind_tools(tools)
     output = TOOL_LLM.invoke(DATA)
     return {"messages": [output]}
