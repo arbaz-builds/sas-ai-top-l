@@ -35,12 +35,17 @@ class IntroDecision(BaseModel):
 
 
 
+
+
+
+
+
+
 class Evidence(BaseModel):
     source: str
     location: Optional[str] = None
     excerpt: Optional[str] = None
-    reason: str
-
+    reason: str  # Is core snippet ne finding ko kaise contribute kiya
 
 class Finding(BaseModel):
     title: str
@@ -55,33 +60,39 @@ class Finding(BaseModel):
         "other",
     ]
     severity: Literal["low", "medium", "high"]
-    description: str
+    description: str  # Deep detailed reason for this specific red flag
     evidence: List[Evidence] = Field(min_length=1)
     requires_human_verification: bool = True
-
 
 class MissingItem(BaseModel):
     item: str
     assessment: Literal["likely_oversight", "needs_verification", "not_a_concern"]
     reason: str
 
+# 🆕 New Model: Mathematical Explanation of the Score
+class ScoreExplanation(BaseModel):
+    base_points: int = 5
+    findings_contribution: int = Field(description="Total points added by Low/Med/High findings")
+    missing_items_contribution: int = Field(description="Total points added by missing data grids")
+    mathematical_formula: str = Field(
+        default="5 + findings_contribution + missing_items_contribution",
+        description="Text description of the score calculation for the reviewer"
+    )
+    justification: str = Field(description="Human-readable summary explaining WHY this score is fair based on risks.")
 
 class ClaimAnalysis(BaseModel):
     review_score: int = Field(ge=0, le=100)
     status: Literal["Low", "Medium", "High", "No documents"]
-    summary: str
+    summary: str  # Core high-level abstract of the claim audit
+    score_breakdown: ScoreExplanation = Field(description="Detailed math behind the review score") # 🆕 Added
     findings: List[Finding] = Field(default_factory=list, max_length=4)
     missing_information: List[MissingItem] = Field(default_factory=list)
+    green_flags: List[str] = Field(
+        default_factory=list, 
+        description="List of verified/legitimate items that matched perfectly (e.g., 'Policy period aligns with incident date')"
+    ) # 🆕 Added
     limitations: List[str] = Field(default_factory=list)
     human_review_required: bool = False
-
-
-
-
-
-
-
-
 
 
 
