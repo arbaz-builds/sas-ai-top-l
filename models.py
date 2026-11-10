@@ -4,11 +4,36 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA , NVIDIAEmbeddings
 from langchain_openai import ChatOpenAI
 
 
+
+
+
 resision_LLM = ChatOpenAI(
           model="openai/gpt-oss-120b",
           api_key=config.OPEN_API_KEY,
           base_url = "https://api.groq.com/openai/v1"
          )
+
+
+
+RAG_LLM = ChatOpenAI(
+          model="llama-3.3-70b-versatile",
+          api_key=config.OPEN_API_KEY,
+          base_url = "https://api.groq.com/openai/v1"
+         )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # NVIDIA Embedding Model
