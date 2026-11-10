@@ -1,5 +1,5 @@
 from models import resision_LLM
-from prompts import IntroDecision_Prompt
+from prompts import INTRO_DECISION_PROMPT 
 from state import IntroDecision, State
 from langchain_core.messages import AIMessage, SystemMessage
 
