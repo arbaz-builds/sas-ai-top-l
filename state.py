@@ -30,11 +30,16 @@ class IntroDecision(BaseModel):
     )
 
 
+
+
+
+
+
 class Evidence(BaseModel):
     source: str
     location: Optional[str] = None
     excerpt: Optional[str] = None
-    explanation: str
+    reason: str
 
 
 class Finding(BaseModel):
@@ -42,29 +47,34 @@ class Finding(BaseModel):
     category: Literal[
         "amount_mismatch",
         "date_mismatch",
+        "calculation_error",
+        "duplicate_invoice",
         "document_inconsistency",
-        "missing_information",
+        "possible_alteration",
         "image_concern",
-        "other"
+        "other",
     ]
     severity: Literal["low", "medium", "high"]
     description: str
-    evidence: List[Evidence] = Field(default_factory=list)
+    evidence: List[Evidence] = Field(min_length=1)
     requires_human_verification: bool = True
+
+
+class MissingItem(BaseModel):
+    item: str
+    assessment: Literal["likely_oversight", "needs_verification", "not_a_concern"]
+    reason: str
 
 
 class ClaimAnalysis(BaseModel):
     review_score: int = Field(ge=0, le=100)
-    status: Literal[
-        "review_recommended",
-        "additional_information_needed",
-        "no_material_discrepancy_identified"
-    ]
+    status: Literal["Low", "Medium", "High", "No documents"]
     summary: str
-    findings: List[Finding] = Field(default_factory=list)
-    missing_information: List[str] = Field(default_factory=list)
+    findings: List[Finding] = Field(default_factory=list, max_length=4)
+    missing_information: List[MissingItem] = Field(default_factory=list)
     limitations: List[str] = Field(default_factory=list)
-    human_review_required: bool = True
+    human_review_required: bool = False
+
 
 
 
