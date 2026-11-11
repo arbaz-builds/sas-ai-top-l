@@ -35,20 +35,15 @@ class IntroDecision(BaseModel):
 
 
 
-
-
-
-
-
-
 class Evidence(BaseModel):
-    source: str
-    location: Optional[str] = None
-    excerpt: Optional[str] = None
-    reason: str  # Is core snippet ne finding ko kaise contribute kiya
+    source: str = Field(description="Original file name, or 'Not specified in analysis'.")
+    location: Optional[str] = Field(default=None, description="Page, section or field if available, otherwise null.")
+    excerpt: Optional[str] = Field(default=None, description="One continuous quote under 20 words, otherwise null.")
+    reason: str = Field(description="One sentence on why this evidence supports the finding.")
+
 
 class Finding(BaseModel):
-    title: str
+    title: str = Field(description="Concise problem name.")
     category: Literal[
         "amount_mismatch",
         "date_mismatch",
@@ -56,43 +51,110 @@ class Finding(BaseModel):
         "duplicate_invoice",
         "document_inconsistency",
         "possible_alteration",
-        "image_concern",
         "other",
     ]
     severity: Literal["low", "medium", "high"]
-    description: str  # Deep detailed reason for this specific red flag
+    description: str = Field(description="One factual sentence describing the concern.")
     evidence: List[Evidence] = Field(min_length=1)
     requires_human_verification: bool = True
 
-class MissingItem(BaseModel):
-    item: str
-    assessment: Literal["likely_oversight", "needs_verification", "not_a_concern"]
-    reason: str
 
-# 🆕 New Model: Mathematical Explanation of the Score
-class ScoreExplanation(BaseModel):
+class MissingItem(BaseModel):
+    item: str = Field(description="Missing document or information named by the analysis.")
+    assessment: Literal["likely_oversight", "needs_verification", "not_a_concern"]
+    reason: str = Field(description="One neutral sentence explaining the assessment.")
+
+
+class ScoreBreakdown(BaseModel):
     base_points: int = 5
-    findings_contribution: int = Field(description="Total points added by Low/Med/High findings")
-    missing_items_contribution: int = Field(description="Total points added by missing data grids")
-    mathematical_formula: str = Field(
-        default="5 + findings_contribution + missing_items_contribution",
-        description="Text description of the score calculation for the reviewer"
-    )
-    justification: str = Field(description="Human-readable summary explaining WHY this score is fair based on risks.")
+    findings_points: int = Field(ge=0)
+    missing_points: int = Field(ge=0, le=15)
+
 
 class ClaimAnalysis(BaseModel):
     review_score: int = Field(ge=0, le=100)
     status: Literal["Low", "Medium", "High", "No documents"]
-    summary: str  # Core high-level abstract of the claim audit
-    score_breakdown: ScoreExplanation = Field(description="Detailed math behind the review score") # 🆕 Added
+    summary: str = Field(description="1-2 sentences explaining the main reasons for the score.")
     findings: List[Finding] = Field(default_factory=list, max_length=4)
     missing_information: List[MissingItem] = Field(default_factory=list)
     green_flags: List[str] = Field(
-        default_factory=list, 
-        description="List of verified/legitimate items that matched perfectly (e.g., 'Policy period aligns with incident date')"
-    ) # 🆕 Added
+        default_factory=list,
+        max_length=4,
+        description="Checks the analysis explicitly states as matched or reconciled. Never inferred. Empty if none.",
+    )
     limitations: List[str] = Field(default_factory=list)
     human_review_required: bool = False
+    score_breakdown: Optional[ScoreBreakdown] = None  # filled in code by finalize(), not by the LLM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
