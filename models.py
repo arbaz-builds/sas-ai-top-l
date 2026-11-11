@@ -15,14 +15,12 @@ resision_LLM = ChatOpenAI(
 
 
 
-RAG_LLM = ChatOpenAI(
-          model="llama-3.3-70b-versatile",
-          api_key=config.OPEN_API_KEY,
-          base_url = "https://api.groq.com/openai/v1"
-         )
 
 
-
+RAG_LLM = ChatNVIDIA(
+    model="meta/llama-3.1-70b-instruct",
+    api_key=config.NVIDIA_API_KEY,
+)
 
 
 
