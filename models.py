@@ -12,7 +12,7 @@ resision_LLM = ChatOpenAI(
     api_key=config.OPEN_API_KEY,
     base_url="https://api.groq.com/openai/v1",
     max_tokens=6000,
-    reasoning_effort="low",
+    reasoning_effort="medium",
 )
 
 
