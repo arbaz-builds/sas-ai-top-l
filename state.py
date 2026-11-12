@@ -128,6 +128,360 @@ class ClaimAnalysis(BaseModel):
 
 
 
+# -----------------------------
+# COMMON CONFIGURATION
+# -----------------------------
+
+class StrictBaseModel(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True
+    )
+
+
+# -----------------------------
+# SOURCE / EVIDENCE
+# -----------------------------
+
+class Evidence(StrictBaseModel):
+    source_id: str = Field(
+        description="Unique source/document identifier"
+    )
+
+    document_name: Optional[str] = None
+
+    page_number: Optional[int] = Field(
+        default=None,
+        ge=1
+    )
+
+    quote: str = Field(
+        min_length=1,
+        description="Exact supporting text from source"
+    )
+
+
+# -----------------------------
+# EXTRACTED FACTS
+# -----------------------------
+
+class ClaimFact(StrictBaseModel):
+    fact_id: str
+
+    category: Literal[
+        "POLICYHOLDER",
+        "POLICY",
+        "CLAIM",
+        "INCIDENT",
+        "VEHICLE",
+        "THIRD_PARTY",
+        "DAMAGE",
+        "REPAIR_ESTIMATE",
+        "FINANCIAL",
+        "OTHER"
+    ]
+
+    field_name: str
+
+    value: str
+
+    confidence: float = Field(
+        ge=0,
+        le=1
+    )
+
+    evidence: list[Evidence] = Field(
+        min_length=1
+    )
+
+
+# -----------------------------
+# DOCUMENT INVENTORY
+# -----------------------------
+
+class DocumentRecord(StrictBaseModel):
+    document_type: str
+
+    status: Literal[
+        "DECLARED_SUBMITTED",
+        "CONTENT_AVAILABLE",
+        "DECLARED_SUBMITTED_NOT_VERIFIED",
+        "NOT_DECLARED",
+        "UNREADABLE",
+        "IRRELEVANT"
+    ]
+
+    source_ids: list[str] = Field(
+        default_factory=list
+    )
+
+    notes: Optional[str] = None
+
+
+# -----------------------------
+# ISSUE DETECTION
+# -----------------------------
+
+class ClaimIssue(StrictBaseModel):
+    issue_id: str
+
+    category: Literal[
+        "DATA_CONFLICT",
+        "MISSING_INFORMATION",
+        "DUPLICATE_DOCUMENT",
+        "FINANCIAL_INCONSISTENCY",
+        "DATE_INCONSISTENCY",
+        "IDENTITY_INCONSISTENCY",
+        "DOCUMENT_QUALITY",
+        "OTHER"
+    ]
+
+    severity: Literal[
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+    ]
+
+    description: str
+
+    affected_fields: list[str] = Field(
+        default_factory=list
+    )
+
+    evidence: list[Evidence] = Field(
+        default_factory=list
+    )
+
+    recommended_action: Optional[str] = None
+
+
+# -----------------------------
+# MISSING INFORMATION
+# -----------------------------
+
+class MissingInformation(StrictBaseModel):
+    field_name: str
+
+    reason: str
+
+    status: Literal[
+        "NOT_FOUND",
+        "DECLARED_BUT_NOT_AVAILABLE",
+        "UNREADABLE",
+        "INCOMPLETE"
+    ]
+
+    importance: Literal[
+        "LOW",
+        "MEDIUM",
+        "HIGH"
+    ]
+
+    related_document_type: Optional[str] = None
+
+
+# -----------------------------
+# FINANCIAL VALIDATION
+# -----------------------------
+
+class FinancialCheck(StrictBaseModel):
+    calculation_name: str
+
+    expected_value: Optional[float] = None
+
+    extracted_value: Optional[float] = None
+
+    difference: Optional[float] = None
+
+    status: Literal[
+        "PASS",
+        "FAIL",
+        "NOT_CHECKED",
+        "INSUFFICIENT_DATA"
+    ]
+
+    explanation: str
+
+
+# -----------------------------
+# CROSS DOCUMENT VERIFICATION
+# -----------------------------
+
+class CrossDocumentVerification(StrictBaseModel):
+    status: Literal[
+        "MATCH",
+        "MISMATCH",
+        "PARTIALLY_VERIFIED",
+        "NOT_VERIFIED"
+    ]
+
+    independent_documents_compared: int = Field(
+        ge=0
+    )
+
+    matched_fields: list[str] = Field(
+        default_factory=list
+    )
+
+    mismatched_fields: list[str] = Field(
+        default_factory=list
+    )
+
+    explanation: str
+
+    @model_validator(mode="after")
+    def validate_verification(self):
+        if (
+            self.independent_documents_compared < 2
+            and self.status in ["MATCH", "MISMATCH"]
+        ):
+            raise ValueError(
+                "MATCH/MISMATCH requires at least two independent documents"
+            )
+
+        return self
+
+
+# -----------------------------
+# SUMMARY
+# -----------------------------
+
+class ClaimSummary(StrictBaseModel):
+    total_facts: int = Field(ge=0)
+
+    total_issues: int = Field(ge=0)
+
+    high_severity_issues: int = Field(ge=0)
+
+    critical_issues: int = Field(ge=0)
+
+    missing_fields: int = Field(ge=0)
+
+    documents_found: int = Field(ge=0)
+
+    documents_declared: int = Field(ge=0)
+
+    financial_checks_passed: int = Field(ge=0)
+
+    financial_checks_failed: int = Field(ge=0)
+
+
+# -----------------------------
+# FINAL CLAIM ANALYSIS
+# -----------------------------
+
+class ClaimAnalysis(StrictBaseModel):
+    schema_version: str = "1.0"
+
+    analysis_status: Literal[
+        "SUCCESS",
+        "PARTIAL",
+        "FAILED"
+    ]
+
+    facts: list[ClaimFact]
+
+    documents: list[DocumentRecord]
+
+    issues: list[ClaimIssue]
+
+    missing_information: list[MissingInformation]
+
+    financial_checks: list[FinancialCheck]
+
+    cross_document_verification: CrossDocumentVerification
+
+    overall_summary: ClaimSummary
+
+    @model_validator(mode="after")
+    def validate_summary_counts(self):
+
+        summary = self.overall_summary
+
+        if summary.total_facts != len(self.facts):
+            raise ValueError("total_facts count mismatch")
+
+        if summary.total_issues != len(self.issues):
+            raise ValueError("total_issues count mismatch")
+
+        if summary.missing_fields != len(self.missing_information):
+            raise ValueError("missing_fields count mismatch")
+
+        high_count = sum(
+            issue.severity == "HIGH"
+            for issue in self.issues
+        )
+
+        critical_count = sum(
+            issue.severity == "CRITICAL"
+            for issue in self.issues
+        )
+
+        if summary.high_severity_issues != high_count:
+            raise ValueError("high_severity_issues count mismatch")
+
+        if summary.critical_issues != critical_count:
+            raise ValueError("critical_issues count mismatch")
+
+        return self
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
