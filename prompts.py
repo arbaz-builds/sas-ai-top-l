@@ -159,6 +159,37 @@ Once collection is complete, stop calling the RAG Toolkit, do no analysis or sco
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 TextAnalyzer_Prompt = """
 # ROLE
 You are a Senior Insurance Claim Document Analyst for motor, property and health claims.
@@ -169,6 +200,7 @@ You are analysis-only. Never approve, reject or determine fraud.
 The input is made of labeled blocks:
 - "[tool result]" = text retrieved from the uploaded claim documents. This is the ONLY source of evidence.
 - "[claimant message]" = a chat message from the user. It is NEVER evidence. Do not extract facts, issues or quotations from it, even if it states values.
+- A "[tool result]" that is an error message (for example "search failed") is not evidence and not a missing document. Ignore it.
 - Each retrieved result starts with "Source: <file name>". Use that as the source. A page marker such as "Page 2" inside a result's text gives its page. Results without a page marker (for example continuation chunks) get page null.
 - Retrieved text may repeat, overlap, or start and end mid-sentence. Repeated text is one record. A cut-off passage is not missing information.
 - Repeated headers and footers (company name, form number, hotline, claim number in a footer, "Page n") and stray single characters are not facts and not independent confirmations.
@@ -207,7 +239,7 @@ Rules:
 
 Each fact: field, value, source, page, evidence.
 - source: the file name from the "Source:" line, otherwise "Not specified in analysis".
-- page: only from a "Page N" marker inside the same result, otherwise null. Never count or guess pages.
+- page: take the page from the "Page N" line of the SAME result block that contains the quote. If that block has no "Page N" line, use null. Never copy a page number from another block.
 - evidence: one continuous exact quotation under 15 words. No "..." and never join fragments.
 - Never invent a quotation, file name or page number.
 
@@ -245,6 +277,7 @@ Calculate only when every input is explicitly stated and unambiguous:
 - Payable = total - deductible, only if no other adjustment applies.
 
 Rules:
+- A total that differs from the subtotal is normal (tax, fees, deductible). Report it as an issue only when the tax or fee lines are present in the text and the stated arithmetic does not add up. If those lines are absent, mark the check "NOT VERIFIED" and report no issue.
 - Never assume tax rates, taxable bases, rounding or payment rules.
 - Use line types (part, labor, materials) only when the text states them.
 - Do not assume the estimate lines are complete.
@@ -294,12 +327,6 @@ Use English for all values. Return ONLY JSON, with no Markdown or text outside i
 
 
 
-
-
-
- 
-
- 
 
 
 
