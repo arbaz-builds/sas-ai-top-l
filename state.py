@@ -1,7 +1,7 @@
 from typing import TypedDict, Literal, Annotated, List, Optional
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,ConfigDict, model_validator
 
 
 
