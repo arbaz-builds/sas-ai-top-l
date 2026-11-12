@@ -523,7 +523,7 @@ class State(TypedDict):
       messages: Annotated[List[BaseMessage], add_messages]
       decision: str
       RefindTopic: str
-      TextDATA:  TEXTAnalysis
+      TextDATA: Optional[TEXTAnalysis]
       ImageDATA: str
       Dataprocess: str
       Finaloutput: Optional[ClaimAnalysis]
