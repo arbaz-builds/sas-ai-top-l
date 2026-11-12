@@ -34,4 +34,4 @@ def text_analyzer(state: State):
     
     Structure_LLM = Low_Reasoning_LLM.with_structured_output(TextAnalysis)
     output = Structure_LLM.invoke([SystemMessage(content=TextAnalyzer_Prompt), HumanMessage(content=data)])
-    return {"TextDATA": output.content}
+    return {"TextDATA": output}
