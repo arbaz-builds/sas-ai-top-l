@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage,ToolMessage
 
-from state import State
+from state import State,TextAnalysis
 from models import Low_Reasoning_LLM
 from prompts import TextAnalyzer_Prompt
 
@@ -31,6 +31,7 @@ def text_analyzer(state: State):
     data = "\n\n".join(p for p in parts if p.strip())[:MAX_CHARS]
     if not data.strip():
         return {"TextDATA": "No text data to analyze."}
-
-    output = Low_Reasoning_LLM.invoke([SystemMessage(content=TextAnalyzer_Prompt), HumanMessage(content=data)])
+    
+        Structure_LLM = Low_Reasoning_LLM.with_structured_output(TextAnalysis)
+    output = Structure_LLM.invoke([SystemMessage(content=TextAnalyzer_Prompt), HumanMessage(content=data)])
     return {"TextDATA": output.content}
