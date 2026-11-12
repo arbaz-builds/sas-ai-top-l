@@ -371,7 +371,7 @@ class ClaimSummary(StrictBaseModel):
 # FINAL CLAIM ANALYSIS
 # -----------------------------
 
-class ClaimAnalysis(StrictBaseModel):
+class TEXTAnalysis(StrictBaseModel):
     schema_version: str = "1.0"
 
     analysis_status: Literal[
@@ -523,7 +523,7 @@ class State(TypedDict):
       messages: Annotated[List[BaseMessage], add_messages]
       decision: str
       RefindTopic: str
-      TextDATA: str
+      TextDATA:  TEXTAnalysis
       ImageDATA: str
       Dataprocess: str
       Finaloutput: Optional[ClaimAnalysis]
