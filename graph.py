@@ -53,7 +53,7 @@ def build_graph():
     # combine waits for BOTH analyzers, then the final agent gives score + reasons
     g.add_edge(["text_analyzer", "image_analyzer"], "combine_agent")
     g.add_edge("combine_agent", "final_score")
-    g.add_edge("final_score", END)
+   # g.add_edge("final_score", END)
 
     return g
 
