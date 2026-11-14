@@ -35,56 +35,9 @@ class IntroDecision(BaseModel):
 
 
 
-class Evidence(BaseModel):
-    source: str = Field(description="Original file name, or 'Not specified in analysis'.")
-    location: Optional[str] = Field(default=None, description="Page, section or field if available, otherwise null.")
-    excerpt: Optional[str] = Field(default=None, description="One continuous quote under 20 words, otherwise null.")
-    reason: str = Field(description="One sentence on why this evidence supports the finding.")
 
 
-class Finding(BaseModel):
-    title: str = Field(description="Concise problem name.")
-    category: Literal[
-        "amount_mismatch",
-        "date_mismatch",
-        "calculation_error",
-        "duplicate_invoice",
-        "document_inconsistency",
-        "possible_alteration",
-        "other",
-    ]
-    severity: Literal["low", "medium", "high"]
-    description: str = Field(description="One factual sentence describing the concern.")
-    evidence: List[Evidence] = Field(min_length=1)
-    requires_human_verification: bool = True
 
-
-class MissingItem(BaseModel):
-    item: str = Field(description="Missing document or information named by the analysis.")
-    assessment: Literal["likely_oversight", "needs_verification", "not_a_concern"]
-    reason: str = Field(description="One neutral sentence explaining the assessment.")
-
-
-class ScoreBreakdown(BaseModel):
-    base_points: int = 5
-    findings_points: int = Field(ge=0)
-    missing_points: int = Field(ge=0, le=15)
-
-
-class ClaimAnalysis(BaseModel):
-    review_score: int = Field(ge=0, le=100)
-    status: Literal["Low", "Medium", "High", "No documents"]
-    summary: str = Field(description="1-2 sentences explaining the main reasons for the score.")
-    findings: List[Finding] = Field(default_factory=list, max_length=4)
-    missing_information: List[MissingItem] = Field(default_factory=list)
-    green_flags: List[str] = Field(
-        default_factory=list,
-        max_length=4,
-        description="Checks the analysis explicitly states as matched or reconciled. Never inferred. Empty if none.",
-    )
-    limitations: List[str] = Field(default_factory=list)
-    human_review_required: bool = False
-    score_breakdown: Optional[ScoreBreakdown] = None  # filled in code by finalize(), not by the LLM
 
 
 
@@ -220,6 +173,117 @@ class TextAnalysis(Strict):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+Impact = Literal["critical", "high", "medium", "low"]
+
+
+class Basis(Strict):
+    """Saboot: ye points kahan se aaye."""
+    source: str                          # file name ya "system rule"
+    page: Optional[int] = None
+    quote: Optional[str] = Field(default=None, description="Exact quote, under 15 words")
+
+
+class ScoreItem(Strict):
+    item: str                            # e.g. "Photos not found"
+    points: int = Field(ge=0)            # risk points
+    reason: str                          # 1 sentence: kyun
+    basis: Basis
+
+
+class Finding(Strict):
+    title: str
+    severity: Literal["low", "medium", "high"]
+    description: str
+    basis: List[Basis] = Field(min_length=1)
+
+
+class MissingItem(Strict):
+    item: str
+    impact: Impact                       # code set karega
+    expected_source: str
+
+
+class GreenFlag(Strict):
+    flag: str
+    basis: str                           # numbers jo reconcile hue
+
+
+class ClaimAnalysis(Strict):
+    risk_score: int = Field(ge=0, le=100)    # 100 = zyada risk
+    status: Literal["Low", "Medium", "High", "Incomplete", "No documents"]
+    summary: str                             # LLM likhega
+    human_review_required: bool              # koi default nahi
+    human_review_reasons: List[str]
+    score_breakdown: List[ScoreItem] = Field(min_length=1)
+    findings: List[Finding] = []
+    missing_information: List[MissingItem] = []
+    green_flags: List[GreenFlag] = []
+    limitations: List[str] = []
+
+    @model_validator(mode="after")
+    def check_rules(self):
+        if self.risk_score != min(100, sum(i.points for i in self.score_breakdown)):
+            raise ValueError("risk_score does not match score_breakdown")
+        needs_review = (
+            bool(self.missing_information)
+            or any(f.severity == "high" for f in self.findings)
+            or self.status in ("Incomplete", "High", "No documents")
+        )
+        if needs_review and not self.human_review_required:
+            raise ValueError("human_review_required must be true")
+        if self.human_review_required and not self.human_review_reasons:
+            raise ValueError("human_review_reasons required")
+        if self.status == "Low" and (self.missing_information or self.findings):
+            raise ValueError("status cannot be Low with missing items or findings")
+        return self
 
 
 
