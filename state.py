@@ -210,13 +210,6 @@ class TextAnalysis(Strict):
 
 
 
-
-
-
-
-
-
-
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -225,7 +218,7 @@ Impact = Literal["critical", "high", "medium", "low"]
 
 
 class Basis(Strict):
-    """Saboot: ye points kahan se aaye."""
+    """Saboot: ye info form mein kahan hai."""
     source: str                          # file name ya "system rule"
     page: Optional[int] = None
     quote: Optional[str] = Field(default=None, description="Exact quote, under 15 words")
@@ -246,9 +239,11 @@ class Finding(Strict):
 
 
 class MissingItem(Strict):
-    item: str
+    item: str                            # kya missing hai
     impact: Impact                       # code set karega
-    expected_source: str
+    why: str                             # kyun zaroori hai
+    action: str                          # adjuster ab kya kare
+    basis: Basis                         # form mein kahan likha hai
 
 
 class GreenFlag(Strict):
@@ -272,10 +267,11 @@ class ClaimAnalysis(Strict):
     def check_rules(self):
         if self.risk_score != min(100, sum(i.points for i in self.score_breakdown)):
             raise ValueError("risk_score does not match score_breakdown")
+
         needs_review = (
             bool(self.missing_information)
             or any(f.severity == "high" for f in self.findings)
-            or self.status in ("Incomplete", "High", "No documents")
+            or self.status in ("Medium", "Incomplete", "High", "No documents")
         )
         if needs_review and not self.human_review_required:
             raise ValueError("human_review_required must be true")
@@ -292,11 +288,7 @@ class ClaimAnalysis(Strict):
 
 
 
-
-
-
-
-
+    
 
 
 
