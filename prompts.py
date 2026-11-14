@@ -630,16 +630,6 @@ Keep it under 450 words, unless there are conflicts or risk signals.
 
 
 
-
-
-
-
-
-
-
-
-
-
 FINAL_REVIEW_PROMPT = """
 # ROLE
 You are the Final Review Agent of an insurance claim system.
@@ -657,7 +647,8 @@ The combined analysis is your ONLY source. Do only what this prompt says.
 basis = {source, page, quote}
 - source: file name from the analysis, else "Not specified in analysis".
   "system rule" is used only for the Base line.
-- page: number if the analysis shows it, else null.
+- page: number if the analysis shows it. If it says "page not shown"
+  or shows nothing, use null.
 - quote: one exact quote from the analysis, under 15 words, no "...".
   If there is no exact quote, null.
 
@@ -700,15 +691,16 @@ Each finding: title, severity, description (one factual sentence),
 basis (list, at least one).
 Severity and points: high 30, medium 15, low 5. If unsure, choose lower.
 NOT findings: missing items, unverified items, reconciled checks,
+a "check failed" line (it is scored in Step 3, not here),
 insurer-filled fields, benefit terms (for example "rental up to $40/day"),
 technical or retrieval errors.
 
 # STEP 3: checks
-- Check the analysis says reconciled or matched -> green_flags
-  {flag, basis}. Basis = the numbers. Never infer.
+- "internal check" lines in MATCHES -> green_flags {flag, basis}.
+  Basis = the numbers. Never infer.
   Never list a cross-document match for a single document.
-- Check "not_verified" -> 10 points.
-- Check "fails" -> 25 points.
+- Each "Check not verified" line in Limitations -> 10 points.
+- Each "check failed" line in CONFLICTS -> 25 points.
 
 # STEP 4: score_breakdown
 One line per deduction: {item, points, reason, basis}.
@@ -716,15 +708,15 @@ Lines, in this order:
 1. Base = 5 points (basis source "system rule").
 2. One line per missing item (Step 1 points).
 3. One line per finding (Step 2 points).
-4. One line per not_verified or fails check (Step 3 points).
+4. One line per not_verified or failed check (Step 3 points).
 risk_score = min(100, sum of all points). It MUST equal the sum.
 Use only the points listed above. 100 = highest review priority.
 The score shows review priority, not claim validity.
 
 # STEP 5: status and review
 Apply in this order, stop at the first match:
-1. Any high finding or any "fails" check -> "High"
-2. Any missing item or "not_verified" check -> "Incomplete"
+1. Any high finding or any failed check -> "High"
+2. Any missing item or not_verified check -> "Incomplete"
 3. Any finding -> "Medium"
 4. Otherwise -> "Low"
 human_review_required = true for every status except "Low".
@@ -756,13 +748,6 @@ Use the user's language (English, Hindi or Hinglish), else English.
 4. Every quote is exact and under 15 words.
 5. Nothing was added that is not in the analysis.
 """
-
-
-
-
-
-
-
 
 
 
