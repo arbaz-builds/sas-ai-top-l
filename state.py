@@ -177,109 +177,89 @@ class TextAnalysis(Strict):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Strict(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-Impact = Literal["critical", "high", "medium", "low"]
-
-
-class Basis(Strict):
-    """Saboot: ye info form mein kahan hai."""
-    source: str                          # file name ya "system rule"
+class Basis(BaseModel):
+    source: str
     page: Optional[int] = None
-    quote: Optional[str] = Field(default=None, description="Exact quote, under 15 words")
+    quote: Optional[str] = Field(default=None, description="Max 15 words")
 
 
-class ScoreItem(Strict):
-    item: str                            # e.g. "Photos not found"
-    points: int = Field(ge=0)            # risk points
-    reason: str                          # 1 sentence: kyun
+class MismatchItem(BaseModel):
+    field: str
+    found: str = Field(description="Form/bill mein kya likha hai")
+    expected: str = Field(description="Sahi kya hona chahiye ya kisse mismatch hai")
+    impact: Literal["critical", "high", "medium", "low"]
+    reason: str
     basis: Basis
 
 
-class Finding(Strict):
-    title: str
-    severity: Literal["low", "medium", "high"]
-    description: str
-    basis: List[Basis] = Field(min_length=1)
+class MissingItem(BaseModel):
+    item: str
+    impact: Literal["critical", "high", "medium", "low"]
+    action: str = Field(description="Shop ko kya karna hai")
+    basis: Basis
 
 
-class MissingItem(Strict):
-    item: str                            # kya missing hai
-    impact: Impact                       # code set karega
-    why: str                             # kyun zaroori hai
-    action: str                          # adjuster ab kya kare
-    basis: Basis                         # form mein kahan likha hai
+class RepairClaimAnalysis(BaseModel):
+    # 0-29: High Reject | 30-69: Medium | 70-100: Low (All Good)
+    approval_score: int = Field(ge=0, le=100)
+    rejection_risk: Literal["High", "Medium", "Low", "No documents"]
+    score_reasoning: str = Field(description="Kyun ye score aaya aur kya-kya sahi hai")
+    human_review_required: bool
+    human_review_reasons: List[str] = []
 
-
-class GreenFlag(Strict):
-    flag: str
-    basis: str                           # numbers jo reconcile hue
-
-
-class ClaimAnalysis(Strict):
-    risk_score: int = Field(ge=0, le=100)    # 100 = zyada risk
-    status: Literal["Low", "Medium", "High", "Incomplete", "No documents"]
-    summary: str                             # LLM likhega
-    human_review_required: bool              # koi default nahi
-    human_review_reasons: List[str]
-    score_breakdown: List[ScoreItem] = Field(min_length=1)
-    findings: List[Finding] = []
-    missing_information: List[MissingItem] = []
-    green_flags: List[GreenFlag] = []
-    limitations: List[str] = []
+    available_info: List[str] = Field(description="Jo info/docs mile hain (short points)")
+    verified_correct: List[str] = Field(description="Jo details bilkul sahi aur match hain")
+    missing_info: List[MissingItem] = []
+    wrong_or_mismatched: List[MismatchItem] = []
 
     @model_validator(mode="after")
     def check_rules(self):
-        if self.risk_score != min(100, sum(i.points for i in self.score_breakdown)):
-            raise ValueError("risk_score does not match score_breakdown")
+        # 1. Auto-sync rejection_risk with approval_score
+        if self.rejection_risk != "No documents":
+            if self.approval_score <= 29 and self.rejection_risk != "High":
+                raise ValueError("Score 0-29 must have rejection_risk='High'")
+            elif 30 <= self.approval_score <= 69 and self.rejection_risk != "Medium":
+                raise ValueError("Score 30-69 must have rejection_risk='Medium'")
+            elif self.approval_score >= 70 and self.rejection_risk != "Low":
+                raise ValueError("Score 70-100 must have rejection_risk='Low'")
 
+        # 2. Human review rules
         needs_review = (
-            bool(self.missing_information)
-            or any(f.severity == "high" for f in self.findings)
-            or self.status in ("Medium", "Incomplete", "High", "No documents")
+            bool(self.missing_info)
+            or bool(self.wrong_or_mismatched)
+            or self.approval_score < 70
+            or self.rejection_risk == "No documents"
         )
         if needs_review and not self.human_review_required:
-            raise ValueError("human_review_required must be true")
+            raise ValueError("human_review_required must be True")
         if self.human_review_required and not self.human_review_reasons:
             raise ValueError("human_review_reasons required")
-        if self.status == "Low" and (self.missing_information or self.findings):
-            raise ValueError("status cannot be Low with missing items or findings")
         return self
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
