@@ -7,7 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 
----- ALLM main LLM Model -----
+#---- ALLM main LLM Model -----
 
 
 
@@ -78,7 +78,7 @@ os.environ["LANGSMITH_API_KEY"] = config.LANGSMITH_API_KEY
 os.environ["LANGSMITH_PROJECT"] = "NVIDIA-Multimodal-AI"
 
 
----- ALL Back UP LLM ----
+#---- ALL Back UP LLM ----
 
 
 
