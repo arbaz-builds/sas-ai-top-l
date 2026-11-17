@@ -19,6 +19,9 @@ LANGSMITH_API_KEY= os.getenv("langsmith")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API")
 
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API")
+
+ 
 
 
 
