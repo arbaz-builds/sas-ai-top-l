@@ -82,7 +82,7 @@ os.environ["LANGSMITH_PROJECT"] = "NVIDIA-Multimodal-AI"
 
 
 
-Low_Reasoning_LLM= ChatOpenAI(
+#Low_Reasoning_LLM= ChatOpenAI(
     model="openai/gpt-oss-120b",
     api_key=config.Groq_API_KEY,
     base_url="https://api.groq.com/openai/v1",
