@@ -5,37 +5,32 @@ from models import resision_LLM, Gemini_Model
 from prompts import FINAL_REVIEW_PROMPT
 
 
-def final_score(state: State):
 
-    DATA = state.get("Dataprocess") or "No combined analysis available."
+ def final_score(state: State):
 
-    Final_DATA = [
-        SystemMessage(content=FINAL_REVIEW_PROMPT),
-        HumanMessage(content=f"This is the combined analysis:\n{DATA}")
-    ]
+DATA = state.get("Dataprocess") or "No combined analysis available."
 
-    try:
+Final_DATA = [
+    SystemMessage(content=FINAL_REVIEW_PROMPT),
+    HumanMessage(content=f"This is the combined analysis:\n{DATA}")
+]
 
-       Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
-        output = Structure_LLM.invoke(Final_DATA)
-
-    except Exception as e:
-        print(f"Primary LLM failed: {e}")
-
-        Structure_LLM = Gemini_Model.with_structured_output(RepairClaimAnalysis)
-        output = Structure_LLM.invoke(Final_DATA)
-
-    return {
-        "Finaloutput": output,
-        "messages": [
-            AIMessage(
-                content=output.model_dump_json(),
-                additional_kwargs={"message_type": "claim_analysis"}
-            )
-        ]
-    }
+try:
+    Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
+    output = Structure_LLM.invoke(Final_DATA)
 
 except Exception as e:
-    print(f"Final score error: {e}")
-    raise
-      
+    print(f"Primary LLM failed: {e}")
+
+    Structure_LLM = Gemini_Model.with_structured_output(RepairClaimAnalysis)
+    output = Structure_LLM.invoke(Final_DATA)
+
+return {
+    "Finaloutput": output,
+    "messages": [
+        AIMessage(
+            content=output.model_dump_json(),
+            additional_kwargs={"message_type": "claim_analysis"}
+        )
+    ]
+}
