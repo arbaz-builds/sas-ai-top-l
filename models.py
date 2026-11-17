@@ -81,14 +81,17 @@ os.environ["LANGSMITH_PROJECT"] = "NVIDIA-Multimodal-AI"
 #---- ALL Back UP LLM ----
 
 
+# OPENROUTER Model 
 
-#Low_Reasoning_LLM= ChatOpenAI(
-    #model="openai/gpt-oss-120b",
-    #api_key=config.Groq_API_KEY,
-    #base_url="https://api.groq.com/openai/v1",
-   # max_tokens=6000,
-    #reasoning_effort="medium",
-#)
+
+OPENROUTER_Model= ChatOpenAI(
+    model="nvidia/nemotron-3-ultra-550b-a55b:free",
+    api_key= config.OPENROUTER,
+    base_url="https://openrouter.ai/api/v1",
+    use_responses_api=False,
+    temperature=0.6,
+)
+
 
 
 
