@@ -15,6 +15,7 @@ docx2txt
 langgraph
 langchain-pinecone
 langchain-nvidia-ai-endpoints
+langchain-google-genai
 langchain-text-splitters
 langgraph-checkpoint-postgres
 psycopg[binary,pool]
