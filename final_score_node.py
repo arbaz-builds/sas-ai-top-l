@@ -1,7 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from state import State, RepairClaimAnalysis
-from models import resision_LLM
+from models import resision_LLM, Gemini_Model
 from prompts import FINAL_REVIEW_PROMPT
 
 def final_score(state: State):
@@ -16,7 +16,7 @@ def final_score(state: State):
     Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
     output = Structure_LLM.invoke(Final_DATA)
  expect :
-    Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
+    Structure_LLM = Gemini_Model.with_structured_output(RepairClaimAnalysis)
     output = Structure_LLM.invoke(Final_DATA)
  
 
