@@ -17,7 +17,7 @@ LANGSMITH_API_KEY= os.getenv("langsmith")
 --- back up api ----
 
 
-GEMINI_API_KEY = os.getenv("Gemini")
+GEMINI_API_KEY = os.getenv("GEMINI_API")
 
 
 
