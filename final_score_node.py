@@ -15,6 +15,9 @@ def final_score(state: State):
 
     Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
     output = Structure_LLM.invoke(Final_DATA)
+ 
+
+
  expect :
     Structure_LLM = Gemini_Model.with_structured_output(RepairClaimAnalysis)
     output = Structure_LLM.invoke(Final_DATA)
