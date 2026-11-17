@@ -72,7 +72,7 @@ vision_LLM = ChatNVIDIA(
 
 
 
------ langsmith Tracker --------
+#----- langsmith Tracker --------
 os.environ["LANGSMITH_TRACING"] = "true"
 os.environ["LANGSMITH_API_KEY"] = config.LANGSMITH_API_KEY
 os.environ["LANGSMITH_PROJECT"] = "NVIDIA-Multimodal-AI"
