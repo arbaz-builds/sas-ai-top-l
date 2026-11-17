@@ -86,7 +86,7 @@ os.environ["LANGSMITH_PROJECT"] = "NVIDIA-Multimodal-AI"
 
 OPENROUTER_Model= ChatOpenAI(
     model="nvidia/nemotron-3-ultra-550b-a55b:free",
-    api_key= config.OPENROUTER,
+    api_key= config.OPENROUTER_API_KEY,
     base_url="https://openrouter.ai/api/v1",
     use_responses_api=False,
     temperature=0.6,
