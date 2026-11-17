@@ -1,6 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
-from state import State, ClaimAnalysis
+from state import State, RepairClaimAnalysis
 from models import resision_LLM
 from prompts import FINAL_REVIEW_PROMPT
 
@@ -12,7 +12,7 @@ def final_score(state: State):
     HumanMessage(content=f"This is the combined         analysis:\n{DATA}"),
   ]
 
-    Structure_LLM = resision_LLM.with_structured_output(ClaimAnalysis)
+    Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
     output = Structure_LLM.invoke(Final_DATA)
 
     return {
