@@ -301,14 +301,7 @@ class RepairClaimAnalysis(BaseModel):
 
 
 
-
-
-
-
-
-
-
-
+ 
 
 
 
@@ -320,4 +313,4 @@ class State(TypedDict):
       TextDATA: Optional[TextAnalysis]
       ImageDATA: str
       Dataprocess: str
-      Finaloutput: Optional[ClaimAnalysis]
+      Finaloutput: Optional[RepairClaimAnalysis]
