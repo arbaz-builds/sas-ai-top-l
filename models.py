@@ -96,9 +96,9 @@ Low_Reasoning_LLM= ChatOpenAI(
 
 
 # Gemini model
-llm = ChatGoogleGenerativeAI(
+Gemini_Model = ChatGoogleGenerativeAI(
     model="gemini-3.8-flash",
-    google_api_key= GEMINI_API_KEY
+    google_api_key= config.GEMINI_API_KEY
 )
 
 
