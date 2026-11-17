@@ -4,16 +4,19 @@ from state import State, RepairClaimAnalysis
 from models import resision_LLM, Gemini_Model
 from prompts import FINAL_REVIEW_PROMPT
 
+
 def final_score(state: State):
 
-    DATA = state.get("Dataprocess") or "No         combined analysis available."
+    DATA = state.get("Dataprocess") or "No combined analysis available."
+
     Final_DATA = [
-      SystemMessage(content=FINAL_REVIEW_PROMPT),
+        SystemMessage(content=FINAL_REVIEW_PROMPT),
         HumanMessage(content=f"This is the combined analysis:\n{DATA}")
     ]
 
     try:
-        Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
+
+       Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
         output = Structure_LLM.invoke(Final_DATA)
 
     except Exception as e:
