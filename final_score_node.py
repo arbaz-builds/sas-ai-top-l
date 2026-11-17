@@ -5,6 +5,7 @@ from models import resision_LLM
 from prompts import FINAL_REVIEW_PROMPT
 
 def final_score(state: State):
+ try:
     DATA = state.get("Dataprocess") or "No combined analysis available."
 
     Final_DATA = [
@@ -14,8 +15,13 @@ def final_score(state: State):
 
     Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
     output = Structure_LLM.invoke(Final_DATA)
+ expect :
+    Structure_LLM = resision_LLM.with_structured_output(RepairClaimAnalysis)
+    output = Structure_LLM.invoke(Final_DATA)
+ 
 
-    return {
+    
+ return {
       "Finaloutput": output,
       "messages": [
         AIMessage(
