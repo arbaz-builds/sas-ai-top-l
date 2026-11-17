@@ -13,6 +13,9 @@ def combine_agent(state: State):
         SystemMessage(content=Combine_Prompt),
         HumanMessage(content=f"This is the Text data:\n{text_data}\n\nThis is the Image data (may be empty):\n{image_data}"),
     ]
-
-    output = resision_LLM.invoke(DATA)
+    try:
+      output = resision_LLM.invoke(DATA)
+    expect expectations as e :
+      print (" combination node fall back {e}")
+      output = OPENROUTER_Model.invoke(DATA 
     return {"Dataprocess": output.content}
