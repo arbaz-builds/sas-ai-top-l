@@ -16,11 +16,15 @@ def combine_agent(state: State):
 
     DATA = [
         SystemMessage(content=Combine_Prompt),
-        HumanMessage(content=f"This is the Text data:\n{text_data}\n\nThis is the Image data (may be empty):\n{image_data}"),
-    ]   
+        HumanMessage(
+            content=f"This is the Text data:\n{text_data}\n\nThis is the Image data (may be empty):\n{image_data}"
+        ),
+    ]
+
     try:
-       output = revision_llm.invoke(DATA)
-except Exception as e:
-       logger.warning(f"combination node fallback: {e}")
-       output = openrouter_model.invoke(DATA)
+        output = revision_llm.invoke(DATA)
+    except Exception as e:
+        logger.warning(f"combination node fallback: {e}")
+        output = openrouter_model.invoke(DATA)
+
     return {"Dataprocess": output.content}
